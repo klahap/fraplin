@@ -14,7 +14,7 @@ To use Fraplin in your project, add the following to your `build.gradle` file:
 
 ```groovy
 plugins {
-    id "com.fraplin" version "1.0.0"
+    id "com.fraplin" version "1.0.1"
 }
 ```
 
