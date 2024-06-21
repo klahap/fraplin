@@ -1,8 +1,8 @@
-package de.frappe.dsl_gen.util
+package com.fraplin.util
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import de.frappe.dsl_gen.models.DocType
+import com.fraplin.models.DocType
 import kotlin.reflect.KClass
 
 data class CodeGenContext(

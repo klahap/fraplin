@@ -1,8 +1,8 @@
-package de.frappe.dsl_gen.models
+package com.fraplin.models
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import de.frappe.dsl_gen.util.*
+import com.fraplin.util.*
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 

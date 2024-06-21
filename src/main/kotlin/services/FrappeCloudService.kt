@@ -1,8 +1,8 @@
-package de.frappe.dsl_gen.services
+package com.fraplin.services
 
-import de.frappe.dsl_gen.util.getJsonIfSuccessfulOrThrow
-import de.frappe.dsl_gen.util.send
-import de.frappe.dsl_gen.util.toRequestBody
+import com.fraplin.util.getJsonIfSuccessfulOrThrow
+import com.fraplin.util.send
+import com.fraplin.util.toRequestBody
 import kotlinx.serialization.json.*
 import okhttp3.*
 import okhttp3.HttpUrl.Companion.toHttpUrl

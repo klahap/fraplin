@@ -1,9 +1,9 @@
-package de.frappe.dsl_gen
+package com.fraplin
 
-import de.frappe.dsl_gen.models.DocTypeInfo
-import de.frappe.dsl_gen.services.FrappeCodeGenService
-import de.frappe.dsl_gen.services.FrappeCloudBaseService
-import de.frappe.dsl_gen.services.FrappeSiteService
+import com.fraplin.models.DocTypeInfo
+import com.fraplin.services.FrappeCodeGenService
+import com.fraplin.services.FrappeCloudBaseService
+import com.fraplin.services.FrappeSiteService
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.nio.file.Path

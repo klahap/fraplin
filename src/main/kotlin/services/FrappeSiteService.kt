@@ -1,7 +1,7 @@
-package de.frappe.dsl_gen.services
+package com.fraplin.services
 
-import de.frappe.dsl_gen.models.*
-import de.frappe.dsl_gen.util.*
+import com.fraplin.models.*
+import com.fraplin.util.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.*

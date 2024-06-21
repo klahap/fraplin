@@ -1,4 +1,4 @@
-package de.frappe.dsl_gen.util
+package com.fraplin.util
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

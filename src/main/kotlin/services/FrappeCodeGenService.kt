@@ -1,9 +1,9 @@
-package de.frappe.dsl_gen.services
+package com.fraplin.services
 
-import de.frappe.dsl_gen.models.DocField
-import de.frappe.dsl_gen.models.DocType
-import de.frappe.dsl_gen.models.DocTypeInfo
-import de.frappe.dsl_gen.util.*
+import com.fraplin.models.DocField
+import com.fraplin.models.DocType
+import com.fraplin.models.DocTypeInfo
+import com.fraplin.util.*
 import kotlinx.coroutines.flow.toList
 import java.nio.file.Path
 import kotlin.io.path.*

@@ -1,4 +1,4 @@
-package de.frappe.dsl_gen.util
+package com.fraplin.util
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.serialization.encodeToString

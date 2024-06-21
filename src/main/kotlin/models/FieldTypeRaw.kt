@@ -1,6 +1,6 @@
-package de.frappe.dsl_gen.models
+package com.fraplin.models
 
-import de.frappe.dsl_gen.util.SafeSerializer
+import com.fraplin.util.SafeSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

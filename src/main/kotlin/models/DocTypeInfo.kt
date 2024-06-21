@@ -1,4 +1,4 @@
-package de.frappe.dsl_gen.models
+package com.fraplin.models
 
 data class DocTypeInfo(
     val name: String,

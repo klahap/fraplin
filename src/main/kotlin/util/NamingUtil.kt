@@ -1,4 +1,4 @@
-package de.frappe.dsl_gen.util
+package com.fraplin.util
 
 private val VALID_CHAR_REGEX = Regex("[^a-zA-Z0-9_ -]")
 

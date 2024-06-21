@@ -1,14 +1,15 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
+    id("com.gradle.plugin-publish") version "1.2.1"
     kotlin("jvm") version "1.9.20"
     kotlin("plugin.serialization") version "1.9.20"
     `java-gradle-plugin`
     `kotlin-dsl`
 }
 
-group = "de.frappe.dsl_gen"
-version = "1.0-SNAPSHOT"
+group = "com.fraplin"
+version = "1.0.0"
 
 repositories {
     mavenCentral()
@@ -39,11 +40,18 @@ tasks.withType<KotlinCompile> {
 }
 
 gradlePlugin {
+    website = "https://github.com/KlausH09/fraplin"
+    vcsUrl = "https://github.com/KlausH09/fraplin.git"
+
     val generateFrappeDsl by plugins.creating {
-        id = "de.frappe.dsl_gen"
-        implementationClass = "de.frappe.dsl_gen.Plugin"
+        id = "com.fraplin"
+        implementationClass = "com.fraplin.Plugin"
+        displayName = "Generate Kotlin Client for a Frappe Site"
+        description = "A plugin that generates a Frappe REST client in Kotlin"
+        tags = listOf("Frappe", "Client", "Kotlin", "Kotlin DSL", "generate")
     }
 }
+
 
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.kotlinOptions {
