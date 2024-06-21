@@ -1,4 +1,4 @@
-# Fraplin: A Gradle Plugin for Generating Kotlin DSL for Frappe Sites
+# Fraplin: A Gradle Plugin for Generating Kotlin DSL for [Frappe Framework Sites](https://frappeframework.com/docs/user/en/introduction)
 
 Welcome to Fraplin! Fraplin is a Gradle plugin that generates Kotlin DSL (Domain Specific Language) for Frappe sites. This DSL facilitates CRUD (Create, Read, Update, Delete) operations by making REST API calls to a Frappe site, leveraging the strong typing capabilities of Kotlin.
 
