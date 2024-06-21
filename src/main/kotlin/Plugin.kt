@@ -48,7 +48,7 @@ open class FrappeDslGeneratorExtension {
     var docTypes: Set<DocTypeInfo> = setOf()
 
     sealed interface SiteConfig {
-        data class Local(
+        data class Site(
             val url: HttpUrl,
             val userToken: String,
         ) : SiteConfig
@@ -70,7 +70,7 @@ data class FrappeDslGeneratorExtensionValid(
         is FrappeDslGeneratorExtension.SiteConfig.Cloud ->
             FrappeCloudBaseService(token = site.cloudToken).getSiteClient(site.url)
 
-        is FrappeDslGeneratorExtension.SiteConfig.Local ->
+        is FrappeDslGeneratorExtension.SiteConfig.Site ->
             FrappeSiteService(siteUrl = site.url, userApiToken = site.userToken)
     }
 }
