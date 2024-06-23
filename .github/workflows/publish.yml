@@ -2,13 +2,14 @@ name: Publish Gradle Plugin
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    tags:
+      - '*.*.*'
+
+permissions:
+  contents: read
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -20,6 +21,14 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+      - name: Check if string is in README
+        run: |
+          if grep -q "id(\"io.github.klahap.fraplin\") version \"$GITHUB_REF_NAME\"" README.md; then
+            echo "README is valid"
+          else
+            echo "Error, update plugin version in README.md"
+            exit 1
+          fi
       - name: publish
         env:
           GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
