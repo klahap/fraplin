@@ -21,7 +21,7 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-      - name: Check if string is in README
+      - name: Check README
         run: |
           if grep -q "id(\"io.github.klahap.fraplin\") version \"$GITHUB_REF_NAME\"" README.md; then
             echo "README is valid"
