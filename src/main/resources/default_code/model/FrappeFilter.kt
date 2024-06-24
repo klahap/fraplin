@@ -12,12 +12,12 @@ data class FrappeFilter(
     value class Value(val data: String)
 
     enum class Operator(val value: String) {
-        Eq("eq"),
+        Eq("="),
         In("in"),
         Like("like"),
         Between("between"),
 
-        NotEq("not eq"),
+        NotEq("!="),
         NotIn("not in"),
         NotLike("not like"),
         NotBetween("not between"),

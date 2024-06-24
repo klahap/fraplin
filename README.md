@@ -14,7 +14,7 @@ To use Fraplin in your project, add the following to your `build.gradle` file:
 
 ```kotlin
 plugins {
-    id("io.github.klahap.fraplin") version "1.0.0"
+    id("io.github.klahap.fraplin") version "1.0.1"
 }
 ```
 
