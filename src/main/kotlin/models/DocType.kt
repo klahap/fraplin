@@ -85,6 +85,10 @@ data class DocType(
                     )
                 }
             }
+            addFunction("toLink") {
+                returns(ClassName("","Link"))
+                addStatement("return Link(name)")
+            }
             addDocTypeLinkClass(
                 docType = ClassName("", prettyName),
                 context = context,
