@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "io.github.klahap.fraplin"
-version = "1.0.1"
+version = System.getenv("FRAPLIN_VERSION") ?: "1.0.0-SNAPSHOT"
 
 repositories {
     mavenCentral()

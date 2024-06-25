@@ -70,7 +70,7 @@ open class FrappeSiteService(
         name: String,
     ): T? where T : DocType, T : DocTypeAbility.Query =
         runCatching { _load(docType = docType, name = name) }
-            .onFailure { if (it !is NotFoundException) throw it }
+            .onFailure { if (it !is HttpException.ClientError.NotFound) throw it }
             .getOrNull()
 
     suspend inline fun <reified T> loadOrNull(
