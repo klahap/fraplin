@@ -1,7 +1,6 @@
 package io.github.klahap.fraplin.services
 
 import io.github.klahap.fraplin.models.DocField
-import io.github.klahap.fraplin.models.DocType
 import io.github.klahap.fraplin.models.DocTypeInfo
 import io.github.klahap.fraplin.util.*
 import kotlinx.coroutines.flow.toList
@@ -23,7 +22,8 @@ class FrappeCodeGenService(
         val childDocTypes = baseDocTypes.asSequence().flatMap { it.fields }
             .filterIsInstance<DocField.Table>()
             .map { it.option }.toSet()
-            .map { allDocTypes[it]!! }.toList()
+            .let { it - baseDocTypes.map { d -> d.docTypeName }.toSet() }
+            .map { allDocTypes[it]!! }
 
         val docTypesGen = baseDocTypes + childDocTypes
         val docTypesGenNames = docTypesGen.map { it.docTypeName }.toSet()
