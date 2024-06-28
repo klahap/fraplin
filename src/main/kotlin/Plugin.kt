@@ -41,6 +41,16 @@ class Plugin : org.gradle.api.Plugin<Project> {
     }
 }
 
+fun readVariableFromFile(file: String, regex: Regex): MatchResult {
+    val path = Path(file).takeIf { it.exists() } ?: throw Exception("file not exists: $file")
+    return regex.findAll(path.readText()).toList()
+        .let {
+            if (it.size > 1) throw Exception("multiple results for '${regex.pattern}' in file $file found")
+            if (it.isEmpty()) throw Exception("no results for '${regex.pattern}' in file $file found")
+            it.single()
+        }
+}
+
 open class FrappeDslGeneratorExtension {
     var site: SiteConfig? = null
     var output: String? = null
