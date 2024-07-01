@@ -9,11 +9,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import okhttp3.HttpUrl
+import okhttp3.*
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
 import okhttp3.coroutines.executeAsync
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
@@ -31,6 +28,15 @@ open class FrappeCloudBaseService(
 
     val client: OkHttpClient
         get() = baseClient
+
+    suspend fun getSiteAuthHeader(
+        siteUrl: HttpUrl,
+        siteToken: String? = null,
+    ): Headers = if (siteToken.isNullOrBlank()) {
+        val sid = getSiteToken(siteUrl).token
+        Headers.Builder().add("Cookie", "sid=$sid").build()
+    } else
+        Headers.Builder().add("Authorization", "token $siteToken").build()
 
     suspend fun getSiteToken(siteUrl: HttpUrl): SiteToken {
         val siteToken = siteTokens.getValueForKey(siteUrl) { url ->
