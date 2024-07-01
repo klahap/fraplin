@@ -1,5 +1,6 @@
 package default_code.service
 
+import default_code.FrappeSiteNotExistsException
 import default_code.util.getJsonIfSuccessfulOrThrow
 import default_code.util.getValueForKey
 import default_code.util.toRequestBody
@@ -22,8 +23,8 @@ open class FrappeCloudBaseService(
         val headers = request.headers.newBuilder().add("Authorization", "Token $token").build()
         it.proceed(request.newBuilder().headers(headers).build())
     }.build(),
-    private val frappeCloudUrl: HttpUrl = "https://frappecloud.com/api/method/press.api.site.login".toHttpUrl()
 ) {
+    private fun frappeCloudUrl(path: String) = "https://frappecloud.com/api/method/$path".toHttpUrl()
     private val siteTokens = ConcurrentHashMap<HttpUrl, CompletableFuture<SiteToken>>()
 
     val client: OkHttpClient
@@ -32,19 +33,44 @@ open class FrappeCloudBaseService(
     suspend fun getSiteAuthHeader(
         siteUrl: HttpUrl,
         siteToken: String? = null,
-    ): Headers = if (siteToken.isNullOrBlank()) {
-        val sid = getSiteToken(siteUrl).token
-        Headers.Builder().add("Cookie", "sid=$sid").build()
-    } else
-        Headers.Builder().add("Authorization", "token $siteToken").build()
+    ): suspend Headers.Builder.() -> Unit {
+        if (!existsSite(siteUrl)) throw FrappeSiteNotExistsException(siteUrl)
+        return if (siteToken.isNullOrBlank()) {
+            {
+                val sid = getSiteToken(siteUrl).token
+                add("Cookie", "sid=$sid")
+            }
+        } else {
+            { add("Authorization", "token $siteToken") }
+        }
+    }
+
+    suspend fun existsSite(siteUrl: HttpUrl): Boolean = getSite(siteUrl)?.let { true } ?: false
+
+    suspend fun getSite(siteUrl: HttpUrl): JsonObject? = Request.Builder()
+        .post(JsonObject(mapOf("name" to JsonPrimitive(siteUrl.host))).toRequestBody())
+        .url(frappeCloudUrl("press.api.site.get"))
+        .send {
+            if (code in 403..404) null
+            else getJsonIfSuccessfulOrThrow<JsonObject>()["message"]!!.jsonObject
+        }
+
+    suspend fun getSiteUpdates(siteUrl: HttpUrl): JsonObject = Request.Builder()
+        .post(JsonObject(mapOf("name" to JsonPrimitive(siteUrl.host))).toRequestBody())
+        .url(frappeCloudUrl("press.api.site.check_for_updates"))
+        .send {
+            if (code in 403..404) throw FrappeSiteNotExistsException(siteUrl)
+            getJsonIfSuccessfulOrThrow<JsonObject>()["message"]!!.jsonObject
+        }
 
     suspend fun getSiteToken(siteUrl: HttpUrl): SiteToken {
         val siteToken = siteTokens.getValueForKey(siteUrl) { url ->
             val body = JsonObject(mapOf("name" to JsonPrimitive(url.host))).toRequestBody()
             val token = Request.Builder()
                 .post(body)
-                .url(frappeCloudUrl)
+                .url(frappeCloudUrl("press.api.site.login"))
                 .send {
+                    if (code in 403..404) throw FrappeSiteNotExistsException(siteUrl)
                     getJsonIfSuccessfulOrThrow<JsonObject>()["message"]!!.jsonObject["sid"]!!.jsonPrimitive.content
                 }
             SiteToken(

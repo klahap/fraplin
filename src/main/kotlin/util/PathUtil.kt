@@ -22,6 +22,7 @@ object PathUtil {
 
     val defaultCodeFiles = setOf(
         DefaultCodeFile(name = "Annotations.kt", relativePackage = null),
+        DefaultCodeFile(name = "Exceptions.kt", relativePackage = null),
         DefaultCodeFile(name = "Interfaces.kt", relativePackage = null),
 
         DefaultCodeFile(name = "CoroutineUtil.kt", relativePackage = "util"),
