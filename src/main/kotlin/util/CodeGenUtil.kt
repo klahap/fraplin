@@ -135,6 +135,8 @@ fun DocField.toClassVariableSpec(
         is DocField.Table -> addAnnotation(context.annotationFrappeTableField) {
             addMember("childDocTypeName = %S", option)
         }
+
+        is DocField.DynamicLink -> Unit
     }
 
     if (isNullable(forceNullable = true))
@@ -172,6 +174,7 @@ fun DocField.getBaseTypeName(parent: DocType, context: CodeGenContext): TypeName
     is DocField.Table -> ClassName("kotlin.collections", "List").parameterizedBy(
         getChildClassName(context)
     )
+    is DocField.DynamicLink -> String::class.asTypeName()
 }
 
 fun DocField.toJsonElementTypeInitString(context: CodeGenContext, mutable: Boolean) = when (this) {
@@ -193,5 +196,5 @@ fun DocField.toJsonElementTypeInitString(context: CodeGenContext, mutable: Boole
         context.jsonElementType,
         if (mutable) "MutableList<$prettyChildName>()" else "List<$prettyChildName>()",
     )
-
+    is DocField.DynamicLink -> CodeBlock.of("%T.String", context.jsonElementType)
 }

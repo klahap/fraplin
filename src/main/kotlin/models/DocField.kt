@@ -111,5 +111,15 @@ sealed interface DocField {
             context.docTypes[option]?.getClassName(context)
                 ?: throw RuntimeException("child doctype '$option' not loaded")
     }
+
+    data class DynamicLink(
+        override val fieldName: String,
+        override val label: String?,
+        override val nullable: Boolean,
+        override val required: Boolean,
+        override val strictTyped: Boolean,
+        override val originFieldType: FieldTypeRaw,
+        val option: String,
+    ) : DocField
 }
 

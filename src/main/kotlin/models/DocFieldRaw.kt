@@ -142,7 +142,20 @@ interface IDocFieldRaw {
         }
 
         // TODO
-        FieldTypeRaw.DynamicLink, FieldTypeRaw.TableMultiSelect -> null
+        FieldTypeRaw.DynamicLink -> run {
+            DocField.DynamicLink(
+                fieldName = fieldName,
+                label = label,
+                nullable = notNullable?.let { !it } ?: true,
+                required = required,
+                strictTyped = strictTyped,
+                originFieldType = fieldType,
+                option = options?.takeIf { it.isNotBlank() } ?: return@run null,
+            )
+        }
+
+        // TODO
+        FieldTypeRaw.TableMultiSelect -> null
 
         // null
         FieldTypeRaw.Button, FieldTypeRaw.Heading, FieldTypeRaw.ColumnBreak,
