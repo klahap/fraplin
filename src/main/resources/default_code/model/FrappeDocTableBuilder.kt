@@ -8,6 +8,6 @@ import kotlinx.serialization.json.JsonElement
 class FrappeDocTableBuilder<D : DocType, B : DocTypeBuilder<D, B>> {
     private val childs: MutableList<JsonElement> = mutableListOf()
 
-    fun add(value: JsonElement) = also { childs.add(value) }
+    fun addJsonValue(value: JsonElement) = also { childs.add(value) }
     fun build() = JsonArray(childs)
 }

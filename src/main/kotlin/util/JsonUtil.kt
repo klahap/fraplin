@@ -7,6 +7,10 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import java.nio.file.Path
+import kotlin.io.path.Path
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
@@ -37,4 +41,16 @@ object BooleanAsIntSerializer : KSerializer<Boolean> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("BooleanAsInt", PrimitiveKind.INT)
     override fun serialize(encoder: Encoder, value: Boolean) = encoder.encodeInt(if (value) 1 else 0)
     override fun deserialize(decoder: Decoder): Boolean = decoder.decodeInt() != 0
+}
+
+object HttpUrlSerializer : KSerializer<HttpUrl> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("HttpUrl", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: HttpUrl) = encoder.encodeString(value.toString())
+    override fun deserialize(decoder: Decoder) = decoder.decodeString().toHttpUrl()
+}
+
+object PathSerializer : KSerializer<Path> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Path", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: Path) = encoder.encodeString(value.toString())
+    override fun deserialize(decoder: Decoder) = Path(decoder.decodeString())
 }

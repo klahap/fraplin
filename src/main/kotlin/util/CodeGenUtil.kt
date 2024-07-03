@@ -15,9 +15,32 @@ fun DocField.isNullable(forceNullable: Boolean): Boolean =
     else
         nullable || forceNullable
 
-fun DocField.getTypeName(parent: DocType, context: CodeGenContext, mutable: Boolean, forceNullable: Boolean): TypeName =
-    getBaseTypeName(parent = parent, context = context, mutable = mutable)
-        .copy(nullable = isNullable(forceNullable = forceNullable))
+fun DocField.toClassVariablePropertySpec(
+    parent: DocType,
+    context: CodeGenContext,
+) = buildProperty(
+    name = prettyFieldName,
+    type = toClassVariableTypeName(
+        parent = parent,
+        context = context,
+    ),
+) {
+    initializer(prettyFieldName)
+}
+
+fun DocField.toClassVariableTypeName(parent: DocType, context: CodeGenContext): TypeName =
+    getBaseTypeName(parent = parent, context = context)
+        .copy(nullable = isNullable(forceNullable = true))
+
+fun DocField.toClassConstructorTypeName(parent: DocType, context: CodeGenContext): TypeName = when (this) {
+    is DocField.Table -> LambdaTypeName.get(
+        receiver = context.getFrappeDocTableBuilder(getChildClassName(context)),
+        returnType = UNIT
+    )
+
+    else -> getBaseTypeName(parent = parent, context = context)
+        .copy(nullable = isNullable(forceNullable = false))
+}
 
 
 fun TypeSpec.Builder.addDocTypeLinkClass(docType: ClassName, context: CodeGenContext) {
@@ -66,64 +89,73 @@ fun TypeSpec.Builder.addDocTypeLinkClass(docType: ClassName, context: CodeGenCon
     }
 }
 
-fun DocField.getParameterSpec(
+fun DocField.toClassVariableSpec(
     parent: DocType,
     context: CodeGenContext,
-    withAnnotations: Boolean,
-    mutable: Boolean,
-    forceNullable: Boolean,
     block: ParameterSpec.Builder.() -> Unit,
 ) = buildParameter(
     prettyFieldName,
-    getTypeName(parent = parent, context, mutable = mutable, forceNullable = forceNullable)
+    toClassVariableTypeName(parent = parent, context)
 ) {
-    if (withAnnotations) {
-        addAnnotation(context.annotationSerialName) { addMember("%S", fieldName) }
-        addAnnotation(context.annotationFrappeField) {
-            addMember("type = %T.${originFieldType.name}", context.frappeFieldType)
+    addAnnotation(context.annotationSerialName) { addMember("%S", fieldName) }
+    addAnnotation(context.annotationFrappeField) {
+        addMember("type = %T.${originFieldType.name}", context.frappeFieldType)
+    }
+    when (this@toClassVariableSpec) {
+        is DocField.Primitive -> when (fieldType) {
+            DocField.Primitive.Type.STRING -> null
+            DocField.Primitive.Type.INT -> null
+            DocField.Primitive.Type.DOUBLE -> null
+            DocField.Primitive.Type.DATE -> if (isNullable(true)) context.localDateNullableSerializer else context.localDateSerializer
+            DocField.Primitive.Type.DATETIME -> if (isNullable(true)) context.localDateTimeNullableSerializer else context.localDateTimeSerializer
+            DocField.Primitive.Type.TIME -> if (isNullable(true)) context.localTimeNullableSerializer else context.localTimeSerializer
+        }?.let {
+            addAnnotation(context.annotationSerializable) { addMember("with=%T::class", it) }
         }
-        when (this@getParameterSpec) {
-            is DocField.Primitive -> when (fieldType) {
-                DocField.Primitive.Type.STRING -> null
-                DocField.Primitive.Type.INT -> null
-                DocField.Primitive.Type.DOUBLE -> null
-                DocField.Primitive.Type.DATE -> if (isNullable(forceNullable)) context.localDateNullableSerializer else context.localDateSerializer
-                DocField.Primitive.Type.DATETIME -> if (isNullable(forceNullable)) context.localDateTimeNullableSerializer else context.localDateTimeSerializer
-                DocField.Primitive.Type.TIME -> if (isNullable(forceNullable)) context.localTimeNullableSerializer else context.localTimeSerializer
-            }?.let {
-                addAnnotation(context.annotationSerializable) { addMember("with=%T::class", it) }
-            }
 
-            is DocField.Attach -> addAnnotation(context.annotationSerializable) {
-                addMember(
-                    "with = %T.AttachField::class",
-                    if (isNullable(forceNullable)) context.frappeInlineStringFieldNullableSerializer else context.frappeInlineStringFieldSerializer
-                )
-            }
+        is DocField.Attach -> addAnnotation(context.annotationSerializable) {
+            addMember(
+                "with = %T.AttachField::class",
+                if (isNullable(true)) context.frappeInlineStringFieldNullableSerializer else context.frappeInlineStringFieldSerializer
+            )
+        }
 
-            is DocField.Check -> addAnnotation(context.annotationSerializable) {
-                addMember("with = %T::class", context.booleanAsIntSerializer)
-            }
+        is DocField.Check -> addAnnotation(context.annotationSerializable) {
+            addMember("with = %T::class", context.booleanAsIntSerializer)
+        }
 
-            is DocField.Link -> addAnnotation(context.annotationSerializable) {
-                addMember("with = %T::class", this@getParameterSpec.getLinkSerializerClassName(context))
-            }
+        is DocField.Link -> addAnnotation(context.annotationSerializable) {
+            addMember("with = %T::class", this@toClassVariableSpec.getLinkSerializerClassName(context))
+        }
 
-            is DocField.Select -> if (isNullable(forceNullable)) {
-                addAnnotation(context.annotationSerializable) { addMember("with=$enumName.NullableSerializer::class") }
-            }
+        is DocField.Select -> if (isNullable(true)) {
+            addAnnotation(context.annotationSerializable) { addMember("with=$enumName.NullableSerializer::class") }
+        }
 
-            is DocField.Table -> addAnnotation(context.annotationFrappeTableField) {
-                addMember("childDocTypeName = %S", option)
-            }
+        is DocField.Table -> addAnnotation(context.annotationFrappeTableField) {
+            addMember("childDocTypeName = %S", option)
         }
     }
-    if (isNullable(forceNullable = forceNullable))
+
+    if (isNullable(forceNullable = true))
         defaultValue("null")
     block()
 }
 
-fun DocField.getBaseTypeName(parent: DocType, context: CodeGenContext, mutable: Boolean): TypeName = when (this) {
+fun DocField.toClassConstructorVariableSpec(
+    parent: DocType,
+    context: CodeGenContext,
+    block: ParameterSpec.Builder.() -> Unit,
+) = buildParameter(
+    prettyFieldName,
+    toClassConstructorTypeName(parent = parent, context = context)
+) {
+    if (isNullable(forceNullable = false))
+        defaultValue("null")
+    block()
+}
+
+fun DocField.getBaseTypeName(parent: DocType, context: CodeGenContext): TypeName = when (this) {
     is DocField.Check -> Boolean::class.asTypeName()
     is DocField.Link -> getLinkClassName(context)
     is DocField.Primitive -> when (fieldType) {
@@ -137,9 +169,8 @@ fun DocField.getBaseTypeName(parent: DocType, context: CodeGenContext, mutable: 
 
     is DocField.Attach -> context.frappeAttachField
     is DocField.Select -> ClassName("${parent.getPackageName(context)}.${parent.prettyName}", enumName)
-    is DocField.Table -> ClassName("kotlin.collections", if (mutable) "MutableList" else "List").parameterizedBy(
-        context.docTypes[option]?.getClassName(context)
-            ?: throw RuntimeException("child doctype '$option' not loaded")
+    is DocField.Table -> ClassName("kotlin.collections", "List").parameterizedBy(
+        getChildClassName(context)
     )
 }
 
@@ -163,21 +194,4 @@ fun DocField.toJsonElementTypeInitString(context: CodeGenContext, mutable: Boole
         if (mutable) "MutableList<$prettyChildName>()" else "List<$prettyChildName>()",
     )
 
-}
-
-fun DocField.getPropertySpec(
-    parent: DocType,
-    context: CodeGenContext,
-    mutable: Boolean,
-    forceNullable: Boolean,
-) = buildProperty(
-    name = prettyFieldName,
-    type = getTypeName(
-        parent = parent,
-        context = context,
-        mutable = mutable,
-        forceNullable = forceNullable,
-    ),
-) {
-    initializer(prettyFieldName)
 }

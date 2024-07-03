@@ -4,7 +4,13 @@ import io.github.klahap.fraplin.models.DocTypeInfo
 import io.github.klahap.fraplin.services.FrappeCodeGenService
 import io.github.klahap.fraplin.services.FrappeCloudBaseService
 import io.github.klahap.fraplin.services.FrappeSiteService
+import io.github.klahap.fraplin.util.HttpUrlSerializer
+import io.github.klahap.fraplin.util.PathSerializer
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import okhttp3.HttpUrl
 import org.gradle.api.Project
 import java.nio.file.Path
@@ -12,6 +18,10 @@ import kotlin.io.path.*
 
 
 class Plugin : org.gradle.api.Plugin<Project> {
+
+    private val json = Json {
+        prettyPrint = true
+    }
 
     override fun apply(project: Project) {
         val extensionFrappe = project.extensions.create(
@@ -38,6 +48,15 @@ class Plugin : org.gradle.api.Plugin<Project> {
                 @OptIn(ExperimentalPathApi::class) extensionFrappe.toValid().output.deleteRecursively()
             }
         }
+        project.task("printFrappeDslGenerationConfig") {
+            doLast {
+                val config = extensionFrappe.toValid().let {
+                    it.copy(output = it.output.absolute())
+                }
+                println()
+                println(json.encodeToString(config))
+            }
+        }
     }
 }
 
@@ -57,22 +76,28 @@ open class FrappeDslGeneratorExtension {
     var packageName: String? = null
     var docTypes: Set<DocTypeInfo> = setOf()
 
+    @Serializable
     sealed interface SiteConfig {
+        @Serializable
+        @SerialName("site")
         data class Site(
-            val url: HttpUrl,
+            @Serializable(HttpUrlSerializer::class) val url: HttpUrl,
             val userToken: String,
         ) : SiteConfig
 
+        @Serializable
+        @SerialName("cloud")
         data class Cloud(
-            val url: HttpUrl,
+            @Serializable(HttpUrlSerializer::class) val url: HttpUrl,
             val cloudToken: String,
         ) : SiteConfig
     }
 }
 
+@Serializable
 data class FrappeDslGeneratorExtensionValid(
     val site: FrappeDslGeneratorExtension.SiteConfig,
-    val output: Path,
+    @Serializable(PathSerializer::class) val output: Path,
     val packageName: String,
     val docTypes: Set<DocTypeInfo>,
 ) {

@@ -69,24 +69,20 @@ data class DocType(
             addSuperinterface(context.getFrappeDocType(docTypeType))
             primaryConstructor {
                 fields.forEach { field ->
-                    addParameter(field.getParameterSpec(
+                    addParameter(field.toClassVariableSpec(
                         parent = this@DocType,
                         context = context,
-                        withAnnotations = true,
-                        mutable = false,
-                        forceNullable = true,
                     ) {})
                     addProperty(
-                        field.getPropertySpec(
+                        field.toClassVariablePropertySpec(
                             parent = this@DocType,
-                            context, mutable = false,
-                            forceNullable = true,
+                            context = context,
                         )
                     )
                 }
             }
             addFunction("toLink") {
-                returns(ClassName("","Link"))
+                returns(ClassName("", "Link"))
                 addStatement("return Link(name)")
             }
             addDocTypeLinkClass(
@@ -159,7 +155,6 @@ data class DocType(
                     val baseType = field.getBaseTypeName(
                         parent = this@DocType,
                         context = context,
-                        mutable = false,
                     )
                     addProperty(
                         name = field.prettyFieldName,
@@ -190,19 +185,33 @@ data class DocType(
         val builder = className.nestedClass("Builder")
         val tableBuilder = context.getFrappeDocTableBuilder(getClassName(context))
         val reqFields = fields.filter { it.required }
+        val builderName = "builder".makeDifferent(blackList = reqFields.map { it.prettyFieldName })
+        val blockName = "block".makeDifferent(blackList = reqFields.map { it.prettyFieldName })
+        val dataName = "data".makeDifferent(blackList = reqFields.map { it.prettyFieldName })
 
         fun FunSpec.Builder.addReqParams() {
             reqFields.forEach { field ->
                 addParameter(
-                    field.getParameterSpec(
+                    field.toClassConstructorVariableSpec(
                         parent = this@DocType,
                         context = context,
-                        withAnnotations = false,
-                        mutable = true,
-                        forceNullable = false,
                     ) {})
             }
         }
+
+        fun FunSpec.Builder.initBuilderWithMandatory() {
+            addStatement("val %L = %T()", builderName, builder)
+            reqFields.forEach { field ->
+                when (field) {
+                    is DocField.Table ->
+                        addStatement("%L.%L(%L)", builderName, field.prettyFieldName, field.prettyFieldName)
+
+                    else -> addStatement("%L.%L = %L", builderName, field.prettyFieldName, field.prettyFieldName)
+                }
+            }
+            addStatement("%L.apply(%L)", builderName, blockName)
+        }
+
         addFunction("load$prettyName") {
             receiver(context.frappeSiteService)
             addModifiers(KModifier.SUSPEND)
@@ -232,7 +241,6 @@ data class DocType(
             receiver(context.frappeSiteService)
             addModifiers(KModifier.SUSPEND)
             returns(className)
-            val blockName = "block".makeDifferent(blackList = reqFields.map { it.prettyFieldName })
             if (docTypeType != Type.SINGLE)
                 addParameter("name", String::class.asTypeName())
             else
@@ -250,7 +258,6 @@ data class DocType(
                 receiver(context.frappeSiteService)
                 addModifiers(KModifier.SUSPEND)
                 returns(className)
-                val blockName = "block".makeDifferent(blackList = reqFields.map { it.prettyFieldName })
                 addParameter("link", getLinkClassName(context))
                 addParameter(blockName, LambdaTypeName.get(receiver = builder, returnType = Unit::class.asTypeName()))
                 addStatement(
@@ -259,20 +266,15 @@ data class DocType(
                     blockName,
                 )
             }
+
         if (docTypeType.creatable)
             addFunction("create$prettyName") {
                 receiver(context.frappeSiteService)
                 addModifiers(KModifier.SUSPEND)
                 returns(className)
-                val blockName = "block".makeDifferent(blackList = reqFields.map { it.prettyFieldName })
                 addReqParams()
-                val builderName = "builder".makeDifferent(blackList = reqFields.map { it.prettyFieldName })
                 addParameter(blockName, LambdaTypeName.get(receiver = builder, returnType = Unit::class.asTypeName()))
-                addStatement("val %L = %T()", builderName, builder)
-                reqFields.forEach { field ->
-                    addStatement("%L.%L = %L", builderName, field.prettyFieldName, field.prettyFieldName)
-                }
-                addStatement("%L.apply(%L)", builderName, blockName)
+                initBuilderWithMandatory()
                 addStatement("return this.create(docType=%T::class, data=%L.build())", className, builderName)
             }
         if (docTypeType.creatable)
@@ -282,15 +284,8 @@ data class DocType(
                 returns(className)
                 addParameter(buildParameter(name = "name", type = String::class.asTypeName(), block = {}))
                 addReqParams()
-                val builderName = "builder".makeDifferent(blackList = reqFields.map { it.prettyFieldName })
-                val dataName = "data".makeDifferent(blackList = reqFields.map { it.prettyFieldName })
-                val blockName = "block".makeDifferent(blackList = reqFields.map { it.prettyFieldName })
                 addParameter(blockName, LambdaTypeName.get(receiver = builder, returnType = Unit::class.asTypeName()))
-                addStatement("val %L = %T()", builderName, builder)
-                reqFields.forEach { field ->
-                    addStatement("%L.%L = %L", builderName, field.prettyFieldName, field.prettyFieldName)
-                }
-                addStatement("%L.apply(%L)", builderName, blockName)
+                initBuilderWithMandatory()
                 addStatement("val %L = %L.build()", dataName, builderName)
                 addCode {
                     beginControlFlow("return try")
@@ -308,13 +303,9 @@ data class DocType(
                 receiver(tableBuilder)
                 returns(tableBuilder)
                 addReqParams()
-                val blockName = "block".makeDifferent(blackList = reqFields.map { it.prettyFieldName })
                 addParameter(blockName, LambdaTypeName.get(receiver = builder, returnType = Unit::class.asTypeName()))
-                addStatement("val builder = %T()", builder)
-                reqFields.forEach { field ->
-                    addStatement("builder.%L = %L", field.prettyFieldName, field.prettyFieldName)
-                }
-                addStatement("add(builder.apply(%L).build())", blockName)
+                initBuilderWithMandatory()
+                addStatement("this.addJsonValue(%L.build())", builderName)
                 addStatement("return this")
             }
     }

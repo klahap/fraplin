@@ -107,6 +107,9 @@ sealed interface DocField {
         val option: String,
     ) : DocField {
         val prettyChildName = option.toCamelCase(capitalized = true)
+        fun getChildClassName(context: CodeGenContext) =
+            context.docTypes[option]?.getClassName(context)
+                ?: throw RuntimeException("child doctype '$option' not loaded")
     }
 }
 
