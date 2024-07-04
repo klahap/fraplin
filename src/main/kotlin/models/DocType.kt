@@ -187,9 +187,12 @@ data class DocType(
         val builder = className.nestedClass("Builder")
         val tableBuilder = context.getFrappeDocTableBuilder(getClassName(context))
         val reqFields = fields.filter { it.required }
-        val builderName = "builder".makeDifferent(blackList = reqFields.map { it.prettyFieldName })
-        val blockName = "block".makeDifferent(blackList = reqFields.map { it.prettyFieldName })
-        val dataName = "data".makeDifferent(blackList = reqFields.map { it.prettyFieldName })
+
+        fun String.toUniqueName() = makeDifferent(blackList = reqFields.map { it.prettyFieldName })
+        val builderName = "builder".toUniqueName()
+        val blockName = "block".toUniqueName()
+        val dataName = "data".toUniqueName()
+        val nameName = "name".toUniqueName()
 
         fun FunSpec.Builder.addReqParams() {
             reqFields.forEach { field ->
@@ -219,8 +222,8 @@ data class DocType(
             addModifiers(KModifier.SUSPEND)
             returns(className)
             if (docTypeType != Type.SINGLE) {
-                addParameter("name", String::class.asTypeName())
-                addStatement("return this.load(docType=%T::class, name=name)", className)
+                addParameter(nameName, String::class.asTypeName())
+                addStatement("return this.load(docType=%T::class, name=%L)", className, nameName)
             } else
                 addStatement("return this.load(docType=%T::class)", className)
         }
@@ -229,28 +232,38 @@ data class DocType(
                 receiver(context.frappeSiteService)
                 addModifiers(KModifier.SUSPEND)
                 returns(className.copy(nullable = true))
-                addParameter("name", String::class.asTypeName())
-                addStatement("return this.loadOrNull(docType=%T::class, name=name)", className)
+                addParameter(nameName, String::class.asTypeName())
+                addStatement("return this.loadOrNull(docType=%T::class, name=%L)", className, nameName)
+            }
+        if (docTypeType != Type.SINGLE)
+            addFunction("exists$prettyName") {
+                receiver(context.frappeSiteService)
+                addModifiers(KModifier.SUSPEND)
+                returns(Boolean::class)
+                addParameter(nameName, String::class.asTypeName())
+                addStatement("return this.exists(docType=%T::class, name=%L)", className, nameName)
+
             }
         if (docTypeType != Type.SINGLE)
             addFunction("delete${prettyName}") {
                 receiver(context.frappeSiteService)
                 addModifiers(KModifier.SUSPEND)
-                addParameter("name", String::class.asTypeName())
-                addStatement("return this.delete(docType=%T::class, name=name)", className)
+                addParameter(nameName, String::class.asTypeName())
+                addStatement("return this.delete(docType=%T::class, name=%L)", className, nameName)
             }
         addFunction("update$prettyName") {
             receiver(context.frappeSiteService)
             addModifiers(KModifier.SUSPEND)
             returns(className)
             if (docTypeType != Type.SINGLE)
-                addParameter("name", String::class.asTypeName())
+                addParameter(nameName, String::class.asTypeName())
             else
-                addStatement("val name = %S", className)
+                addStatement("val %L = %S", nameName, className)
             addParameter(blockName, LambdaTypeName.get(receiver = builder, returnType = Unit::class.asTypeName()))
             addStatement(
-                "return this.update(docType=%T::class, name=name, data=%T().apply(%L).build())",
+                "return this.update(docType=%T::class, name=%L, data=%T().apply(%L).build())",
                 className,
+                nameName,
                 builder,
                 blockName,
             )
@@ -321,24 +334,63 @@ data class DocType(
                 initBuilderWithMandatory()
                 addStatement("return this.create(docType=%T::class, data=%L.build())", className, builderName)
             }
-        if (docTypeType.creatable)
-            addFunction("updateOrCreate$prettyName") {
+        if (docTypeType.creatable) {
+            fun FunSpec.Builder.addCreateFunCommon() {
                 receiver(context.frappeSiteService)
                 addModifiers(KModifier.SUSPEND)
                 returns(className)
-                addParameter(buildParameter(name = "name", type = String::class.asTypeName(), block = {}))
+                addParameter(buildParameter(name = nameName, type = String::class.asTypeName(), block = {}))
                 addReqParams()
-                addParameter(blockName, LambdaTypeName.get(receiver = builder, returnType = Unit::class.asTypeName()))
+                addParameter(
+                    name = blockName,
+                    type = LambdaTypeName.get(receiver = builder, returnType = Unit::class.asTypeName()),
+                ) {
+                    defaultValue("{}")
+                }
                 initBuilderWithMandatory()
                 addStatement("val %L = %L.build()", dataName, builderName)
+            }
+            addFunction("loadOrCreate$prettyName") {
+                addCreateFunCommon()
                 addCode {
                     beginControlFlow("return try")
-                    addStatement("this.update(docType=%T::class, name=name, data=%L)", className, dataName)
+                    addStatement("this.load(docType=%T::class, name=%L)", className, nameName)
                     nextControlFlow("catch (e: %T)", context.notFoundException)
                     addStatement("this.create(docType=%T::class, data=%L)", className, dataName)
                     endControlFlow()
                 }
             }
+            addFunction("createOrLoad$prettyName") {
+                addCreateFunCommon()
+                addCode {
+                    beginControlFlow("return try")
+                    addStatement("this.create(docType=%T::class, data=%L)", className, dataName)
+                    nextControlFlow("catch (e: %T)", context.conflictException)
+                    addStatement("this.load(docType=%T::class, name=%L)", className, nameName)
+                    endControlFlow()
+                }
+            }
+            addFunction("updateOrCreate$prettyName") {
+                addCreateFunCommon()
+                addCode {
+                    beginControlFlow("return try")
+                    addStatement("this.update(docType=%T::class, name=%L, data=%L)", className, nameName, dataName)
+                    nextControlFlow("catch (e: %T)", context.notFoundException)
+                    addStatement("this.create(docType=%T::class, data=%L)", className, dataName)
+                    endControlFlow()
+                }
+            }
+            addFunction("createOrUpdate$prettyName") {
+                addCreateFunCommon()
+                addCode {
+                    beginControlFlow("return try")
+                    addStatement("this.create(docType=%T::class, data=%L)", className, dataName)
+                    nextControlFlow("catch (e: %T)", context.conflictException)
+                    addStatement("this.update(docType=%T::class, name=%L, data=%L)", className, nameName, dataName)
+                    endControlFlow()
+                }
+            }
+        }
         if (docTypeType == Type.CHILD)
             addFunction("add") {
                 addAnnotation(JvmName::class.asClassName()) {

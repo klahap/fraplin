@@ -50,6 +50,31 @@ open class FrappeSiteService(
     suspend inline fun <reified T> load() where T : DocType.Single =
         load(docType = T::class)
 
+    suspend fun <T> exists(
+        docType: KClass<T>,
+        name: String,
+    ): Boolean where T : DocType, T : DocTypeAbility.Query = loadAllNames(docType = docType) {
+        filters {
+            add(
+                FrappeFilter(
+                    fieldName = "name",
+                    operator = FrappeFilter.Operator.Eq,
+                    value = FrappeFilter.Value(name),
+                )
+            )
+        }
+    }.count() == 1
+
+    suspend inline fun <reified T> exists(
+        name: String,
+    ): Boolean where T : DocType, T : DocTypeAbility.Query =
+        exists(docType = T::class, name = name)
+
+    suspend inline fun <reified T> exists(
+        link: FrappeLinkField<T>,
+    ): Boolean where T : DocType, T : DocTypeAbility.Query =
+        exists(docType = link.docType, name = link.value)
+
     suspend fun <T> load(
         docType: KClass<T>,
         name: String,
@@ -57,12 +82,12 @@ open class FrappeSiteService(
 
     suspend inline fun <reified T> load(
         name: String,
-    ) where T : DocType, T : DocTypeAbility.Query =
+    ): T where T : DocType, T : DocTypeAbility.Query =
         load(docType = T::class, name = name)
 
     suspend inline fun <reified T> load(
         link: FrappeLinkField<T>,
-    ) where T : DocType, T : DocTypeAbility.Query =
+    ): T where T : DocType, T : DocTypeAbility.Query =
         load(docType = link.docType, name = link.value)
 
     suspend fun <T> loadOrNull(

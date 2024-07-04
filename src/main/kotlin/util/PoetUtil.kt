@@ -14,6 +14,7 @@ data class CodeGenContext(
     val packageNameService = "$packageName.service"
 
     val notFoundException = ClassName(packageNameUtil, "HttpException", "ClientError", "NotFound")
+    val conflictException = ClassName(packageNameUtil, "HttpException", "ClientError", "Conflict")
 
     val annotationSerialName = ClassName("kotlinx.serialization", "SerialName")
     val annotationSerializable = ClassName("kotlinx.serialization", "Serializable")
