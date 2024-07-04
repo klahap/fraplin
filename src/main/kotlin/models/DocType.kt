@@ -3,6 +3,7 @@ package io.github.klahap.fraplin.models
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.github.klahap.fraplin.util.*
+import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 
@@ -182,6 +183,7 @@ data class DocType(
     fun addHelperCode(context: CodeGenContext) {
 
         val className = getClassName(context)
+        val linkClassName = getLinkClassName(context)
         val builder = className.nestedClass("Builder")
         val tableBuilder = context.getFrappeDocTableBuilder(getClassName(context))
         val reqFields = fields.filter { it.required }
@@ -258,13 +260,55 @@ data class DocType(
                 receiver(context.frappeSiteService)
                 addModifiers(KModifier.SUSPEND)
                 returns(className)
-                addParameter("link", getLinkClassName(context))
+                addParameter("link", linkClassName)
                 addParameter(blockName, LambdaTypeName.get(receiver = builder, returnType = Unit::class.asTypeName()))
                 addStatement(
                     "return this.update(docType=link.docType, name=link.value, data=%T().apply(%L).build())",
                     builder,
                     blockName,
                 )
+            }
+        if (docTypeType != Type.SINGLE)
+            addFunction("loadAll${prettyName}") {
+                receiver(context.frappeSiteService)
+                addModifiers(KModifier.SUSPEND)
+                returns(Flow::class.asClassName().parameterizedBy(className))
+                addParameter(
+                    blockName,
+                    LambdaTypeName.get(
+                        receiver = context.getFrappeRequestOptions(className),
+                        returnType = Unit::class.asTypeName(),
+                    ),
+                ) {
+                    defaultValue("{}")
+                }
+                addStatement(
+                    "return this.loadAll(docType=%T::class, block=%L)",
+                    className,
+                    blockName,
+                )
+            }
+        if (docTypeType != Type.SINGLE)
+            addFunction("loadAllNamesOf${prettyName}") {
+                receiver(context.frappeSiteService)
+                addModifiers(KModifier.SUSPEND)
+                returns(Flow::class.asClassName().parameterizedBy(linkClassName))
+                addParameter(
+                    blockName,
+                    LambdaTypeName.get(
+                        receiver = context.getFrappeRequestOptions(className),
+                        returnType = Unit::class.asTypeName(),
+                    ),
+                ) {
+                    defaultValue("{}")
+                }
+                addStatement(
+                    "return this.loadAllNames(docType=%T::class, block=%L)\n.map { %T(it) }",
+                    className,
+                    blockName,
+                    linkClassName,
+                )
+                addImport("kotlinx.coroutines.flow", "map")
             }
 
         if (docTypeType.creatable)

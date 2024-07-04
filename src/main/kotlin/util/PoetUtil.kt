@@ -43,6 +43,9 @@ data class CodeGenContext(
     val frappeFieldType = ClassName(packageNameModel, "FrappeFieldType")
     val frappeLinkField = ClassName(packageNameModel, "FrappeLinkField")
     val frappeAttachField = ClassName(packageNameModel, "FrappeAttachField")
+    fun getFrappeRequestOptions(docType: ClassName) =
+        ClassName(packageNameModel, "FrappeRequestOptions", "Builder").parameterizedBy(docType)
+
     fun getFrappeDocTableBuilder(docType: ClassName) = ClassName(packageNameModel, "FrappeDocTableBuilder")
         .parameterizedBy(docType, docType.nestedClass("Builder"))
 
@@ -150,6 +153,12 @@ fun FunSpec.Builder.addPrimaryConstructorProperty(
         block()
     }
 }
+
+fun FunSpec.Builder.addParameter(
+    name: String,
+    type: TypeName,
+    block: ParameterSpec.Builder.() -> Unit,
+) = addParameter(ParameterSpec.builder(name, type).apply(block).build())
 
 fun TypeSpec.Builder.addProperty(
     name: String,

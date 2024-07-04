@@ -86,7 +86,7 @@ open class FrappeSiteService(
     @OptIn(ExperimentalCoroutinesApi::class)
     suspend fun <T> loadAll(
         docType: KClass<T>,
-        block: FrappeRequestOptions.Builder<T>.() -> Unit,
+        block: FrappeRequestOptions.Builder<T>.() -> Unit = {},
     ): Flow<T> where T : DocType, T : DocTypeAbility.Query {
         val deserializer = docType.toSerializer()
         return loadBatches(
@@ -112,11 +112,23 @@ open class FrappeSiteService(
     }
 
     suspend inline fun <reified T> loadAll(
-        noinline block: FrappeRequestOptions.Builder<T>.() -> Unit,
-    ) where T : DocType, T : DocTypeAbility.Query = loadAll(
+        noinline block: FrappeRequestOptions.Builder<T>.() -> Unit = {},
+    ): Flow<T> where T : DocType, T : DocTypeAbility.Query = loadAll(
         docType = T::class,
         block = block,
     )
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    suspend fun <T> loadAllNames(
+        docType: KClass<T>,
+        block: FrappeRequestOptions.Builder<T>.() -> Unit = {},
+    ): Flow<String> where T : DocType, T : DocTypeAbility.Query = loadBatches(
+        docType = docType.getDocTypeName(),
+        batchSize = 1000,
+        options = FrappeRequestOptions.Builder<T>().apply(block).build(),
+    ).flatMapConcat { batch ->
+        batch.map { it["name"]!!.jsonPrimitive.content }.asFlow()
+    }
 
     suspend fun <T> create(
         docType: KClass<T>,
