@@ -3,6 +3,7 @@ package default_code.util
 import default_code.FrappeEnum
 import default_code.DocType
 import default_code.model.FrappeAttachField
+import default_code.model.FrappeDocStatus
 import default_code.model.FrappeInlineStringField
 import kotlinx.serialization.json.*
 import kotlin.reflect.KClass
@@ -40,6 +41,13 @@ interface JsonElementType<T : Any> {
     data object String : JsonElementType<kotlin.String> {
         override fun toValue(data: JsonElement) = data.jsonPrimitive.contentOrNull
         override fun toJson(data: kotlin.String?) = JsonPrimitive(data)
+    }
+
+    data object DocStatus : JsonElementType<FrappeDocStatus> {
+        override fun toValue(data: JsonElement) = data.jsonPrimitive.intOrNull
+            ?.let { status -> FrappeDocStatus.values().firstOrNull { it.value == status } }
+
+        override fun toJson(data: FrappeDocStatus?) = JsonPrimitive(data?.value)
     }
 
     data object LocalDate : JsonElementType<kotlinx.datetime.LocalDate> {

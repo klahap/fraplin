@@ -121,5 +121,13 @@ sealed interface DocField {
         override val originFieldType: FieldTypeRaw,
         val option: String,
     ) : DocField
-}
 
+    data object DocStatus: DocField {
+        override val fieldName = "docstatus"
+        override val label = null
+        override val nullable = false
+        override val required = false
+        override val strictTyped = true
+        override val originFieldType = FieldTypeRaw.Int
+    }
+}

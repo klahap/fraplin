@@ -39,31 +39,31 @@ data class DocTypeRaw(
 
 
     companion object {
-        private data class DefaultField(
-            val name: String,
-            val type: DocField.Primitive.Type,
-            val originalType: FieldTypeRaw,
-        )
+        private fun getDefaultFields(type: DocType.Type) = buildList {
+            add("name", DocField.Primitive.Type.STRING, FieldTypeRaw.Data)
+            add("owner", DocField.Primitive.Type.STRING, FieldTypeRaw.Data)
+            if (type != DocType.Type.SINGLE)
+                add("creation", DocField.Primitive.Type.DATETIME, FieldTypeRaw.DateTime)
+            add("modified", DocField.Primitive.Type.DATETIME, FieldTypeRaw.DateTime)
+            add("modified_by", DocField.Primitive.Type.STRING, FieldTypeRaw.Data)
+            add(DocField.DocStatus)
+            add("idx", DocField.Primitive.Type.INT, FieldTypeRaw.Int)
+        }
 
-        private fun getDefaultFields(type: DocType.Type) = listOfNotNull(
-            DefaultField("name", DocField.Primitive.Type.STRING, FieldTypeRaw.Data),
-            DefaultField("owner", DocField.Primitive.Type.STRING, FieldTypeRaw.Data),
-            DefaultField("creation", DocField.Primitive.Type.DATETIME, FieldTypeRaw.DateTime)
-                .takeIf { type != DocType.Type.SINGLE },
-            DefaultField("modified", DocField.Primitive.Type.DATETIME, FieldTypeRaw.DateTime),
-            DefaultField("modified_by", DocField.Primitive.Type.STRING, FieldTypeRaw.Data),
-            DefaultField("docstatus", DocField.Primitive.Type.INT, FieldTypeRaw.Int),
-            DefaultField("idx", DocField.Primitive.Type.INT, FieldTypeRaw.Int),
-        ).map {
+        private fun MutableList<DocField>.add(
+            name: String,
+            type: DocField.Primitive.Type,
+            originalType: FieldTypeRaw,
+        ) = add(
             DocField.Primitive(
-                fieldName = it.name,
+                fieldName = name,
                 label = null,
                 nullable = false,
                 required = false,
                 strictTyped = true,
-                fieldType = it.type,
-                originFieldType = it.originalType,
+                fieldType = type,
+                originFieldType = originalType,
             )
-        }
+        )
     }
 }

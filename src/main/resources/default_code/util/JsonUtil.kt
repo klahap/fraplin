@@ -1,6 +1,7 @@
 package default_code.util
 
 import default_code.model.FrappeAttachField
+import default_code.model.FrappeDocStatus
 import default_code.model.FrappeInlineStringField
 import kotlinx.datetime.*
 import kotlinx.datetime.format.DateTimeComponents
@@ -13,7 +14,6 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlin.reflect.KClass
 
 
 open class SafeSerializer<T>(
@@ -33,6 +33,15 @@ object BooleanAsIntSerializer : KSerializer<Boolean> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("BooleanAsInt", PrimitiveKind.INT)
     override fun serialize(encoder: Encoder, value: Boolean) = encoder.encodeInt(if (value) 1 else 0)
     override fun deserialize(decoder: Decoder): Boolean = decoder.decodeInt() != 0
+}
+
+object FrappeDocStatusSerializer : KSerializer<FrappeDocStatus> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("FrappeDocStatus", PrimitiveKind.INT)
+    override fun serialize(encoder: Encoder, value: FrappeDocStatus) = encoder.encodeInt(value.value)
+    override fun deserialize(decoder: Decoder): FrappeDocStatus = decoder.decodeInt().let { status ->
+        FrappeDocStatus.values().firstOrNull { it.value == status }
+            ?: throw Exception("invalid DocStatus '$status'")
+    }
 }
 
 abstract class FrappeInlineStringFieldSerializer<T : FrappeInlineStringField>(

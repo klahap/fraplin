@@ -136,6 +136,10 @@ fun DocField.toClassVariableSpec(
             addMember("childDocTypeName = %S", option)
         }
 
+        is DocField.DocStatus -> addAnnotation(context.annotationSerializable) {
+            addMember("with = %T::class", context.frappeDocStatusSerializer)
+        }
+
         is DocField.DynamicLink -> Unit
     }
 
@@ -159,6 +163,7 @@ fun DocField.toClassConstructorVariableSpec(
 
 fun DocField.getBaseTypeName(parent: DocType, context: CodeGenContext): TypeName = when (this) {
     is DocField.Check -> Boolean::class.asTypeName()
+    is DocField.DocStatus -> context.frappeDocStatus
     is DocField.Link -> getLinkClassName(context)
     is DocField.Primitive -> when (fieldType) {
         DocField.Primitive.Type.STRING -> String::class.asTypeName()
@@ -179,6 +184,7 @@ fun DocField.getBaseTypeName(parent: DocType, context: CodeGenContext): TypeName
 
 fun DocField.toJsonElementTypeInitString(context: CodeGenContext, mutable: Boolean) = when (this) {
     is DocField.Check -> CodeBlock.of("%T.Boolean", context.jsonElementType)
+    is DocField.DocStatus -> CodeBlock.of("%T.DocStatus", context.jsonElementType)
     is DocField.Link -> CodeBlock.of("%T", getLinkJsonTypeClassName(context))
     is DocField.Primitive -> when (fieldType) {
         DocField.Primitive.Type.STRING -> "String"

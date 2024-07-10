@@ -2,15 +2,14 @@ package io.github.klahap.fraplin.util
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.nio.file.Path
 
 
 object PathUtil {
     data class DefaultCodeFile(
-        private val name: String,
-        private val relativePackage: String?,
+        private val fileName: String,
+        private val packageName: String?,
     ) {
-        val relativePath = listOfNotNull(relativePackage, name).joinToString("/")
+        val relativePath = listOfNotNull(packageName, fileName).joinToString("/")
 
         suspend fun getContent(packageName: String) = withContext(Dispatchers.IO) {
 
@@ -20,36 +19,57 @@ object PathUtil {
             .replace("import default_code", "import $packageName")
     }
 
-    val defaultCodeFiles = setOf(
-        DefaultCodeFile(name = "Annotations.kt", relativePackage = null),
-        DefaultCodeFile(name = "Exceptions.kt", relativePackage = null),
-        DefaultCodeFile(name = "Interfaces.kt", relativePackage = null),
+    val defaultCodeFiles = buildSet {
+        addFile("Annotations.kt")
+        addFile("Exceptions.kt")
+        addFile("Interfaces.kt")
 
-        DefaultCodeFile(name = "CoroutineUtil.kt", relativePackage = "util"),
-        DefaultCodeFile(name = "DelegationUtil.kt", relativePackage = "util"),
-        DefaultCodeFile(name = "DocTypeUtil.kt", relativePackage = "util"),
-        DefaultCodeFile(name = "HttpUtil.kt", relativePackage = "util"),
-        DefaultCodeFile(name = "JsonElementUtil.kt", relativePackage = "util"),
-        DefaultCodeFile(name = "JsonUtil.kt", relativePackage = "util"),
+        addPackage("util") {
+            addFile("CoroutineUtil.kt")
+            addFile("DelegationUtil.kt")
+            addFile("DocTypeUtil.kt")
+            addFile("HttpUtil.kt")
+            addFile("JsonElementUtil.kt")
+            addFile("JsonUtil.kt")
+        }
+        addPackage("service") {
+            addFile("FrappeCloudBaseService.kt")
+            addFile("FrappeSiteService.kt")
+        }
+        addPackage("model") {
+            addFile("FrappeBase.kt")
+            addFile("FrappeDocStatus.kt")
+            addFile("FrappeDocTableBuilder.kt")
+            addFile("FrappeFieldType.kt")
+            addFile("FrappeFilter.kt")
+            addFile("FrappeFilterSet.kt")
+            addFile("FrappeOrderBy.kt")
+            addFile("FrappeRequestOptions.kt")
+        }
+        addPackage("util/request") {
+            addFile("FilterBoolean.kt")
+            addFile("FilterDate.kt")
+            addFile("FilterDateTime.kt")
+            addFile("FilterDouble.kt")
+            addFile("FilterEnum.kt")
+            addFile("FilterInlineString.kt")
+            addFile("FilterInt.kt")
+            addFile("FilterString.kt")
+        }
+    }
 
-        DefaultCodeFile(name = "FrappeCloudBaseService.kt", relativePackage = "service"),
-        DefaultCodeFile(name = "FrappeSiteService.kt", relativePackage = "service"),
 
-        DefaultCodeFile(name = "FrappeBase.kt", relativePackage = "model"),
-        DefaultCodeFile(name = "FrappeDocTableBuilder.kt", relativePackage = "model"),
-        DefaultCodeFile(name = "FrappeFieldType.kt", relativePackage = "model"),
-        DefaultCodeFile(name = "FrappeFilter.kt", relativePackage = "model"),
-        DefaultCodeFile(name = "FrappeFilterSet.kt", relativePackage = "model"),
-        DefaultCodeFile(name = "FrappeOrderBy.kt", relativePackage = "model"),
-        DefaultCodeFile(name = "FrappeRequestOptions.kt", relativePackage = "model"),
+    private class PackageBuilder(val packageName: String) {
+        val result = mutableSetOf<DefaultCodeFile>()
+        fun build() = result.toSet()
+    }
 
-        DefaultCodeFile(name = "FilterBoolean.kt", relativePackage = "util/request"),
-        DefaultCodeFile(name = "FilterDate.kt", relativePackage = "util/request"),
-        DefaultCodeFile(name = "FilterDateTime.kt", relativePackage = "util/request"),
-        DefaultCodeFile(name = "FilterDouble.kt", relativePackage = "util/request"),
-        DefaultCodeFile(name = "FilterEnum.kt", relativePackage = "util/request"),
-        DefaultCodeFile(name = "FilterInlineString.kt", relativePackage = "util/request"),
-        DefaultCodeFile(name = "FilterInt.kt", relativePackage = "util/request"),
-        DefaultCodeFile(name = "FilterString.kt", relativePackage = "util/request"),
-    )
+    private fun PackageBuilder.addFile(fileName: String) =
+        result.addFile(fileName = fileName, packageName = packageName)
+
+    private fun MutableSet<DefaultCodeFile>.addFile(fileName: String, packageName: String? = null) =
+        add(DefaultCodeFile(fileName = fileName, packageName = packageName))
+
+    private fun MutableSet<DefaultCodeFile>.addPackage(packageName: String, block: PackageBuilder.() -> Unit) =
+        addAll(PackageBuilder(packageName).apply(block).build())
 }

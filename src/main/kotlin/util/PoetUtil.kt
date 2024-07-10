@@ -24,6 +24,7 @@ data class CodeGenContext(
 
     val safeSerializer = ClassName(packageNameUtil, "SafeSerializer")
     val booleanAsIntSerializer = ClassName(packageNameUtil, "BooleanAsIntSerializer")
+    val frappeDocStatusSerializer = ClassName(packageNameUtil, "FrappeDocStatusSerializer")
     val frappeInlineStringFieldSerializer = ClassName(packageNameUtil, "FrappeInlineStringFieldSerializer")
     val frappeInlineStringFieldNullableSerializer =
         ClassName(packageNameUtil, "FrappeInlineStringFieldNullableSerializer")
@@ -42,6 +43,7 @@ data class CodeGenContext(
         ClassName(packageName, "FrappeEnum").parameterizedBy(ClassName("", enumName))
 
     val frappeFieldType = ClassName(packageNameModel, "FrappeFieldType")
+    val frappeDocStatus = ClassName(packageNameModel, "FrappeDocStatus")
     val frappeLinkField = ClassName(packageNameModel, "FrappeLinkField")
     val frappeAttachField = ClassName(packageNameModel, "FrappeAttachField")
     fun getFrappeRequestOptions(docType: ClassName) =
