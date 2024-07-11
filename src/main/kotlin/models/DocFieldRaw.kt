@@ -99,7 +99,6 @@ interface IDocFieldRaw {
             nullable = false,
             required = required,
             strictTyped = strictTyped,
-            originFieldType = fieldType,
         )
 
         FieldTypeRaw.Select -> run {
@@ -109,7 +108,6 @@ interface IDocFieldRaw {
                 nullable = notNullable?.let { !it } ?: true,
                 required = required,
                 strictTyped = strictTyped,
-                originFieldType = fieldType,
                 options = options?.split('\n')
                     ?.map { it.trim() }
                     ?.filter { it.isNotBlank() }
@@ -124,7 +122,6 @@ interface IDocFieldRaw {
                 nullable = notNullable?.let { !it } ?: true,
                 required = required,
                 strictTyped = strictTyped,
-                originFieldType = fieldType,
                 option = options?.takeIf { it.isNotBlank() } ?: return@run null,
             )
         }
@@ -136,7 +133,6 @@ interface IDocFieldRaw {
                 nullable = notNullable?.let { !it } ?: true,
                 required = required,
                 strictTyped = strictTyped,
-                originFieldType = fieldType,
                 option = options?.takeIf { it.isNotBlank() } ?: return@run null,
             )
         }
@@ -149,7 +145,6 @@ interface IDocFieldRaw {
                 nullable = notNullable?.let { !it } ?: true,
                 required = required,
                 strictTyped = strictTyped,
-                originFieldType = fieldType,
                 option = options?.takeIf { it.isNotBlank() } ?: return@run null,
             )
         }

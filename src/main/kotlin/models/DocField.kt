@@ -45,8 +45,9 @@ sealed interface DocField {
         override val nullable: Boolean,
         override val required: Boolean,
         override val strictTyped: Boolean,
-        override val originFieldType: FieldTypeRaw,
-    ) : DocField
+    ) : DocField{
+        override val originFieldType = FieldTypeRaw.Check
+    }
 
     data class Select(
         override val fieldName: String,
@@ -54,9 +55,9 @@ sealed interface DocField {
         override val nullable: Boolean,
         override val required: Boolean,
         override val strictTyped: Boolean,
-        override val originFieldType: FieldTypeRaw,
         val options: Set<String>,
     ) : DocField {
+        override val originFieldType = FieldTypeRaw.Select
         val enumName = fieldName.toCamelCase(capitalized = true)
         private val enumType get() = ClassName("", enumName)
 
@@ -87,9 +88,9 @@ sealed interface DocField {
         override val nullable: Boolean,
         override val required: Boolean,
         override val strictTyped: Boolean,
-        override val originFieldType: FieldTypeRaw,
         val option: String,
     ) : DocField {
+        override val originFieldType = FieldTypeRaw.Link
         fun getDocType(context: CodeGenContext) = context.docTypes[option]!!
         fun getLinkClassName(context: CodeGenContext) = getDocType(context).getLinkClassName(context)
         fun getLinkJsonTypeClassName(context: CodeGenContext) = getDocType(context).getLinkJsonTypeClassName(context)
@@ -103,9 +104,9 @@ sealed interface DocField {
         override val nullable: Boolean,
         override val required: Boolean,
         override val strictTyped: Boolean,
-        override val originFieldType: FieldTypeRaw,
         val option: String,
     ) : DocField {
+        override val originFieldType = FieldTypeRaw.Table
         val prettyChildName = option.toCamelCase(capitalized = true)
         fun getChildClassName(context: CodeGenContext) =
             context.docTypes[option]?.getClassName(context)
@@ -118,11 +119,12 @@ sealed interface DocField {
         override val nullable: Boolean,
         override val required: Boolean,
         override val strictTyped: Boolean,
-        override val originFieldType: FieldTypeRaw,
         val option: String,
-    ) : DocField
+    ) : DocField {
+        override val originFieldType = FieldTypeRaw.DynamicLink
+    }
 
-    data object DocStatus: DocField {
+    data object DocStatus : DocField {
         override val fieldName = "docstatus"
         override val label = null
         override val nullable = false

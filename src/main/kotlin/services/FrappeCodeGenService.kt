@@ -13,8 +13,9 @@ class FrappeCodeGenService(
 ) {
 
     suspend fun generate(packageName: String, output: Path, docTypeInfos: Set<DocTypeInfo>) {
-        val docTypeNames = docTypeInfos.map { it.name }.toSet()
-        val allDocTypes = client.getDocTypes(docTypeInfos).toList().associateBy { it.docTypeName }
+        val allDocTypeInfo = docTypeInfos + setOf(DocTypeInfo(name = "User"))
+        val docTypeNames = allDocTypeInfo.map { it.name }.toSet()
+        val allDocTypes = client.getDocTypes(allDocTypeInfo).toList().associateBy { it.docTypeName }
         if (!allDocTypes.keys.containsAll(docTypeNames))
             throw Exception("doc types not found: ${docTypeNames - allDocTypes.keys}")
 
