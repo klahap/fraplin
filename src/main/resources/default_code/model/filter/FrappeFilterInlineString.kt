@@ -1,4 +1,4 @@
-package default_code.filter
+package default_code.model.filter
 
 import default_code.DocType
 import default_code.DocTypeAbility
@@ -9,11 +9,11 @@ import default_code.util.frappeName
 import kotlin.reflect.KProperty1
 
 
-fun FrappeInlineStringField.toFrappeFilterValue() = FrappeFilter.Value("\"${this.value}\"")
+private fun FrappeInlineStringField.toFrappeFilterValue() = FrappeFilterString(value)
 
 @JvmName("toFilterValueInlineString")
-fun <S : FrappeInlineStringField> Iterable<S>.toFrappeFilterValue() =
-    FrappeFilter.Value(toSet().joinToString(separator = ",", prefix = "[", postfix = "]") { "\"${it.value}\"" })
+private fun <S : FrappeInlineStringField> Iterable<S>.toFrappeFilterValue() =
+    FrappeFilterStringSet(map { it.value }.toSet())
 
 
 context(FrappeFilterSet.Builder<T>)
@@ -36,8 +36,8 @@ infix fun <T, S : FrappeInlineStringField> KProperty1<T, S?>.notIn(values: Itera
 
 context(FrappeFilterSet.Builder<T>)
 infix fun <T, S : FrappeInlineStringField> KProperty1<T, S?>.like(value: String) where T : DocType, T : DocTypeAbility.Query =
-    add(FrappeFilter(frappeName, FrappeFilter.Operator.Like, value.toFrappeFilterValue()))
+    add(FrappeFilter(frappeName, FrappeFilter.Operator.Like, FrappeFilterString(value)))
 
 context(FrappeFilterSet.Builder<T>)
 infix fun <T, S : FrappeInlineStringField> KProperty1<T, S?>.notLike(value: String) where T : DocType, T : DocTypeAbility.Query =
-    add(FrappeFilter(frappeName, FrappeFilter.Operator.NotLike, value.toFrappeFilterValue()))
+    add(FrappeFilter(frappeName, FrappeFilter.Operator.NotLike, FrappeFilterString(value)))

@@ -2,8 +2,9 @@ package default_code.service
 
 import default_code.DocType
 import default_code.DocTypeAbility
-import default_code.filter.toFrappeFilterValue
 import default_code.model.*
+import default_code.model.filter.FrappeFilterString
+import default_code.model.filter.FrappeFilterStringSet
 import default_code.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -59,7 +60,7 @@ open class FrappeSiteService(
                 FrappeFilter(
                     fieldName = "name",
                     operator = FrappeFilter.Operator.Eq,
-                    value = FrappeFilter.Value(name),
+                    value = FrappeFilterString(name),
                 )
             )
         }
@@ -151,6 +152,7 @@ open class FrappeSiteService(
         docType = docType.getDocTypeName(),
         batchSize = 1000,
         options = FrappeRequestOptions.Builder<T>().apply(block).build(),
+        onlyNames = true,
     ).flatMapConcat { batch ->
         batch.map { it["name"]!!.jsonPrimitive.content }.asFlow()
     }
@@ -229,7 +231,7 @@ open class FrappeSiteService(
                         FrappeFilter(
                             fieldName = "parent",
                             operator = FrappeFilter.Operator.In,
-                            value = parentNames.map { it.name }.toFrappeFilterValue(),
+                            value = FrappeFilterStringSet(parentNames.map { it.name }.toSet()),
                         )
                     )
                 )
@@ -253,9 +255,11 @@ open class FrappeSiteService(
         docType: FrappeDocTypeName,
         batchSize: Int,
         options: FrappeRequestOptions,
+        onlyNames: Boolean = false
     ): Flow<List<JsonObject>> {
         val url = getDocTypeUrl(docType).newBuilder {
-            addQueryParameter("fields", """["*"]""")
+            if (!onlyNames)
+                addQueryParameter("fields", """["*"]""")
             options.filters?.let { addQueryParameter("filters", it.serialize()) }
             options.parent?.let { addQueryParameter("parent", it.name) }
             options.orderBy?.let { addQueryParameter("order_by", it.serialize()) }

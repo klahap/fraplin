@@ -1,4 +1,4 @@
-package default_code.filter
+package default_code.model.filter
 
 import kotlin.reflect.KProperty1
 import default_code.DocType
@@ -8,10 +8,11 @@ import default_code.model.FrappeFilter
 import default_code.model.FrappeFilterSet
 import default_code.util.frappeName
 
-fun <T> T.toFrappeFilterValue() where T : Enum<T>, T : FrappeEnum<T> = this.origin.toFrappeFilterValue()
+fun <T> T.toFrappeFilterValue() where T : Enum<T>, T : FrappeEnum<T> = FrappeFilterString(origin)
 
 @JvmName("toFilterValueEnum")
-fun <T> Iterable<T>.toFrappeFilterValue() where T : Enum<T>, T : FrappeEnum<T> = map { it.origin }.toFrappeFilterValue()
+fun <T> Iterable<T>.toFrappeFilterValue() where T : Enum<T>, T : FrappeEnum<T> =
+    FrappeFilterStringSet(map { it.origin }.toSet())
 
 context(FrappeFilterSet.Builder<T>)
 infix fun <T, E> KProperty1<T, E?>.eq(value: E) where T : DocType, T : DocTypeAbility.Query, E : Enum<E>, E : FrappeEnum<E> =

@@ -2,7 +2,6 @@ package default_code.model
 
 import default_code.DocType
 import default_code.DocTypeAbility
-import default_code.filter.toFrappeFilterValue
 import default_code.util.frappeName
 import kotlin.reflect.KProperty1
 

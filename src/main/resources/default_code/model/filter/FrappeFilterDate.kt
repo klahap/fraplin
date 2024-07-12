@@ -1,4 +1,4 @@
-package default_code.filter
+package default_code.model.filter
 
 import default_code.model.FrappeFilter
 import default_code.util.LocalDateStringSerializer
@@ -10,37 +10,39 @@ import default_code.model.FrappeFilterSet
 import default_code.util.frappeName
 
 
-fun LocalDate.toFrappeFilterValue() = FrappeFilter.Value(
-    "\"${LocalDateStringSerializer.serialize(this)}\""
-)
+@JvmInline
+value class FrappeFilterDate(val data: LocalDate) : FrappeFilterValue {
+    override fun serialize() = "\"${LocalDateStringSerializer.serialize(data)}\""
+}
 
-@JvmName("toFilterValuePairLocalDate")
-fun Pair<LocalDate, LocalDate>.toFrappeFilterValue() = FrappeFilter.Value(
-    "[\"${LocalDateStringSerializer.serialize(first)}\",\"${LocalDateStringSerializer.serialize(second)}\"]"
-)
+@JvmInline
+value class FrappeFilterDatePair(val data: Pair<LocalDate, LocalDate>) : FrappeFilterValue {
+    override fun serialize() =
+        "[\"${LocalDateStringSerializer.serialize(data.first)}\",\"${LocalDateStringSerializer.serialize(data.second)}\"]"
+}
 
 context(FrappeFilterSet.Builder<T>)
 infix fun <T> KProperty1<T, LocalDate?>.eq(value: LocalDate) where T : DocType, T : DocTypeAbility.Query =
-    add(FrappeFilter(frappeName, FrappeFilter.Operator.Eq, value.toFrappeFilterValue()))
+    add(FrappeFilter(frappeName, FrappeFilter.Operator.Eq, FrappeFilterDate(value)))
 
 context(FrappeFilterSet.Builder<T>)
 infix fun <T> KProperty1<T, LocalDate?>.notEq(value: LocalDate) where T : DocType, T : DocTypeAbility.Query =
-    add(FrappeFilter(frappeName, FrappeFilter.Operator.NotEq, value.toFrappeFilterValue()))
+    add(FrappeFilter(frappeName, FrappeFilter.Operator.NotEq, FrappeFilterDate(value)))
 
 context(FrappeFilterSet.Builder<T>)
 infix fun <T> KProperty1<T, LocalDate?>.after(value: LocalDate) where T : DocType, T : DocTypeAbility.Query =
-    add(FrappeFilter(frappeName, FrappeFilter.Operator.After, value.toFrappeFilterValue()))
+    add(FrappeFilter(frappeName, FrappeFilter.Operator.After, FrappeFilterDate(value)))
 
 context(FrappeFilterSet.Builder<T>)
 infix fun <T> KProperty1<T, LocalDate?>.before(value: LocalDate) where T : DocType, T : DocTypeAbility.Query =
-    add(FrappeFilter(frappeName, FrappeFilter.Operator.Before, value.toFrappeFilterValue()))
+    add(FrappeFilter(frappeName, FrappeFilter.Operator.Before, FrappeFilterDate(value)))
 
 context(FrappeFilterSet.Builder<T>)
 @JvmName("betweenPairLocalDate")
 infix fun <T> KProperty1<T, LocalDate?>.between(value: Pair<LocalDate, LocalDate>) where T : DocType, T : DocTypeAbility.Query =
-    add(FrappeFilter(frappeName, FrappeFilter.Operator.Between, value.toFrappeFilterValue()))
+    add(FrappeFilter(frappeName, FrappeFilter.Operator.Between, FrappeFilterDatePair(value)))
 
 context(FrappeFilterSet.Builder<T>)
 @JvmName("notBetweenPairLocalDate")
 infix fun <T> KProperty1<T, LocalDate?>.notBetween(value: Pair<LocalDate, LocalDate>) where T : DocType, T : DocTypeAbility.Query =
-    add(FrappeFilter(frappeName, FrappeFilter.Operator.NotBetween, value.toFrappeFilterValue()))
+    add(FrappeFilter(frappeName, FrappeFilter.Operator.NotBetween, FrappeFilterDatePair(value)))

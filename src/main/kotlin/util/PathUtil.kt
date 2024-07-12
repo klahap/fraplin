@@ -46,15 +46,16 @@ object PathUtil {
             addFile("FrappeOrderBy.kt")
             addFile("FrappeRequestOptions.kt")
         }
-        addPackage("util/request") {
-            addFile("FilterBoolean.kt")
-            addFile("FilterDate.kt")
-            addFile("FilterDateTime.kt")
-            addFile("FilterDouble.kt")
-            addFile("FilterEnum.kt")
-            addFile("FilterInlineString.kt")
-            addFile("FilterInt.kt")
-            addFile("FilterString.kt")
+        addPackage("model/filter") {
+            addFile("FrappeFilterBoolean.kt")
+            addFile("FrappeFilterDate.kt")
+            addFile("FrappeFilterDateTime.kt")
+            addFile("FrappeFilterDouble.kt")
+            addFile("FrappeFilterEnum.kt")
+            addFile("FrappeFilterInlineString.kt")
+            addFile("FrappeFilterInt.kt")
+            addFile("FrappeFilterString.kt")
+            addFile("FrappeFilterValue.kt")
         }
     }
 
