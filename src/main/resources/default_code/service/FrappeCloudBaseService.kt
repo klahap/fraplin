@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 open class FrappeCloudBaseService(
     private val token: String,
-    private val team: String?,
+    private val team: String? = null,
     private val baseClient: OkHttpClient = OkHttpClient().newBuilder().addInterceptor {
         val request = it.request()
         val headers = request.headers.newBuilder()
