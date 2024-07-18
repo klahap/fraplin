@@ -18,9 +18,16 @@ import java.util.concurrent.ConcurrentHashMap
 
 open class FrappeCloudBaseService(
     private val token: String,
+    private val team: String?,
     private val baseClient: OkHttpClient = OkHttpClient().newBuilder().addInterceptor {
         val request = it.request()
-        val headers = request.headers.newBuilder().add("Authorization", "Token $token").build()
+        val headers = request.headers.newBuilder()
+            .add("Authorization", "Token $token")
+            .add("Authorization", "Token $token").apply {
+                if (!team.isNullOrBlank())
+                    add("X-Press-Team", team)
+            }
+            .build()
         it.proceed(request.newBuilder().headers(headers).build())
     }.build(),
 ) {
