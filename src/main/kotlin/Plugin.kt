@@ -90,6 +90,7 @@ open class FrappeDslGeneratorExtension {
         data class Cloud(
             @Serializable(HttpUrlSerializer::class) val url: HttpUrl,
             val cloudToken: String,
+            val team: String? = null,
         ) : SiteConfig
     }
 }
@@ -103,7 +104,7 @@ data class FrappeDslGeneratorExtensionValid(
 ) {
     suspend fun createClient() = when (site) {
         is FrappeDslGeneratorExtension.SiteConfig.Cloud ->
-            FrappeCloudBaseService(token = site.cloudToken).getSiteClient(site.url)
+            FrappeCloudBaseService(token = site.cloudToken, team = site.team).getSiteClient(site.url)
 
         is FrappeDslGeneratorExtension.SiteConfig.Site ->
             FrappeSiteService(siteUrl = site.url, userApiToken = site.userToken)

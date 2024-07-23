@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.*
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
-import okhttp3.Request
 
 class FrappeSiteService(
     private val baseUrl: HttpUrl,
@@ -59,13 +58,15 @@ class FrappeSiteService(
     suspend fun loadBatches(docType: String, batchSize: Int, block: HttpUrl.Builder.() -> Unit) =
         flow {
             for (idx in range()) {
-                val url = baseUrl.newBuilder {
-                    addPathSegments("api/resource/$docType")
-                    addQueryParameter("limit_start", (idx * batchSize).toString())
-                    addQueryParameter("limit", batchSize.toString())
-                    block()
-                }
-                val names = Request.Builder().get().url(url).send(client) {
+                val names = requestBuilder {
+                    get()
+                    url(baseUrl.newBuilder {
+                        addPathSegments("api/resource/$docType")
+                        addQueryParameter("limit_start", (idx * batchSize).toString())
+                        addQueryParameter("limit", batchSize.toString())
+                        block()
+                    })
+                }.send(client) {
                     getJsonIfSuccessfulOrThrow<JsonObject>(json)["data"]!!.jsonArray.map { it.jsonObject }
                 }
                 emit(names)

@@ -5,22 +5,22 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import okhttp3.*
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.coroutines.executeAsync
 
 
 fun HttpUrl.newBuilder(block: HttpUrl.Builder.() -> Unit) = newBuilder().apply(block).build()
-fun httpUrlBuilder(block: HttpUrl.Builder.() -> Unit) =HttpUrl.Builder().apply(block).build()
 
-fun httpUrlBuilder(baseUrl: String, block: HttpUrl.Builder.() -> Unit) =
-    baseUrl.toHttpUrl().newBuilder().apply(block).build()
+fun Request.newBuilder(block: Request.Builder.(request: Request) -> Unit) =
+    newBuilder().apply { block(this@newBuilder) }.build()
+
+fun requestBuilder(block: Request.Builder.() -> Unit) = Request.Builder().apply(block).build()
 
 
 @OptIn(ExperimentalCoroutinesApi::class)
-suspend fun <T> Request.Builder.send(client: OkHttpClient, responseHandler: Response.() -> T): T =
-    client.newCall(this.build()).executeAsync().use { responseHandler(it) }
+suspend fun <T> Request.send(client: OkHttpClient, responseHandler: Response.() -> T): T =
+    client.newCall(this).executeAsync().use { responseHandler(it) }
 
 fun Response.throwIfNotSuccessful() {
     if (isSuccessful) return

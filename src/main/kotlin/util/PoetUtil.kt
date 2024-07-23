@@ -9,9 +9,9 @@ data class CodeGenContext(
     val packageName: String,
     val docTypes: Map<String, DocType>
 ) {
-    val packageNameModel = "$packageName.model"
-    val packageNameUtil = "$packageName.util"
-    val packageNameService = "$packageName.service"
+    private val packageNameModel = "$packageName.model"
+    private val packageNameUtil = "$packageName.util"
+    private val packageNameService = "$packageName.service"
 
     val notFoundException = ClassName(packageNameUtil, "HttpException", "ClientError", "NotFound")
     val conflictException = ClassName(packageNameUtil, "HttpException", "ClientError", "Conflict")

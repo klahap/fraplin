@@ -31,6 +31,7 @@ object PathUtil {
             addFile("HttpUtil.kt")
             addFile("JsonElementUtil.kt")
             addFile("JsonUtil.kt")
+            addFile("StringUtil.kt")
         }
         addPackage("service") {
             addFile("FrappeCloudBaseService.kt")

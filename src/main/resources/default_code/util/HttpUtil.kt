@@ -3,8 +3,10 @@ package default_code.util
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 
@@ -46,3 +48,9 @@ fun Response.throwIfError() {
 
 fun JsonElement.toRequestBody() =
     Json.encodeToString(this).toRequestBody("application/json; charset=utf-8".toMediaType())
+
+fun Request.newBuilder(block: Request.Builder.(request: Request) -> Unit) =
+    newBuilder().apply { block(this@newBuilder) }.build()
+
+fun Headers.newBuilder(block: Headers.Builder.() -> Unit) = newBuilder().apply(block).build()
+fun requestBuilder(block: Request.Builder.() -> Unit) = Request.Builder().apply(block).build()

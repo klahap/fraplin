@@ -1,9 +1,7 @@
 package default_code.service
 
 import default_code.FrappeSiteNotExistsException
-import default_code.util.getJsonIfSuccessfulOrThrow
-import default_code.util.getValueForKey
-import default_code.util.toRequestBody
+import default_code.util.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.datetime.*
 import kotlinx.serialization.json.JsonObject
@@ -18,12 +16,19 @@ import java.util.concurrent.ConcurrentHashMap
 
 open class FrappeCloudBaseService(
     private val token: String,
-    private val baseClient: OkHttpClient = OkHttpClient().newBuilder().addInterceptor {
-        val request = it.request()
-        val headers = request.headers.newBuilder().add("Authorization", "Token $token").build()
-        it.proceed(request.newBuilder().headers(headers).build())
+    private val team: String? = null,
+    private val baseClient: OkHttpClient = OkHttpClient().newBuilder().addInterceptor { chain ->
+        chain.proceed(chain.request().newBuilder { request ->
+            headers(request.headers.newBuilder {
+                add("Authorization", "Token $token")
+                team?.takeIfNotBlank()?.let {
+                    add("X-Press-Team", it)
+                }
+            })
+        })
     }.build(),
 ) {
+
     private fun frappeCloudUrl(path: String) = "https://frappecloud.com/api/method/$path".toHttpUrl()
     private val siteTokens = ConcurrentHashMap<HttpUrl, CompletableFuture<SiteToken>>()
 
