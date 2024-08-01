@@ -39,9 +39,9 @@ open class FrappeCloudBaseService(
         siteUrl: HttpUrl,
         siteToken: String? = null,
     ): suspend Headers.Builder.() -> Unit {
-        if (!existsSite(siteUrl)) throw FrappeSiteNotExistsException(siteUrl)
         return if (siteToken.isNullOrBlank()) {
-            {
+            { 
+                if (!existsSite(siteUrl)) throw FrappeSiteNotExistsException(siteUrl)
                 val sid = getSiteToken(siteUrl).token
                 add("Cookie", "sid=$sid")
             }
