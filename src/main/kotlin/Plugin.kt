@@ -29,8 +29,8 @@ class Plugin : org.gradle.api.Plugin<Project> {
             FrappeDslGeneratorExtension::class.java,
         )
 
-        project.task("generateFrappeDsl") {
-            doLast {
+        project.task("generateFrappeDsl") { task ->
+            task.doLast {
                 val config = extensionFrappe.toValid()
                 runBlocking {
                     val frappeSiteClient = config.createClient()
@@ -43,13 +43,13 @@ class Plugin : org.gradle.api.Plugin<Project> {
                 }
             }
         }
-        project.task("cleanFrappeDsl") {
-            doLast {
+        project.task("cleanFrappeDsl") { task ->
+            task.doLast {
                 @OptIn(ExperimentalPathApi::class) extensionFrappe.toValid().output.deleteRecursively()
             }
         }
-        project.task("printFrappeDslGenerationConfig") {
-            doLast {
+        project.task("printFrappeDslGenerationConfig") { task ->
+            task.doLast {
                 val config = extensionFrappe.toValid().let {
                     it.copy(output = it.output.absolute())
                 }

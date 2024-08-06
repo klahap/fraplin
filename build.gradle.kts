@@ -5,8 +5,6 @@ plugins {
     id("com.gradle.plugin-publish") version "1.2.1"
     kotlin("jvm") version "2.0.10"
     kotlin("plugin.serialization") version "2.0.10"
-    `java-gradle-plugin`
-    `kotlin-dsl`
 }
 
 val groupStr = "io.github.klahap.fraplin"
@@ -48,6 +46,6 @@ kotlin {
         freeCompilerArgs.add("-Xjsr305=strict")
         freeCompilerArgs.add("-Xcontext-receivers")
         jvmTarget.set(JvmTarget.JVM_21)
-        languageVersion.set(KotlinVersion.KOTLIN_2_0)
+        languageVersion = KotlinVersion.KOTLIN_2_0
     }
 }

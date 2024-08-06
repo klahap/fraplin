@@ -41,44 +41,41 @@ class FrappeCodeGenService(
 
         val context = CodeGenContext(
             packageName = packageName,
+            outputPath = output.toAbsolutePath(),
             docTypes = (docTypesGen + dummyDocTypes).associateBy { it.docTypeName },
         )
 
-        val outputPath = output.toAbsolutePath().apply {
+        context.outputPath.apply {
             if (isDirectory())
                 @OptIn(ExperimentalPathApi::class) deleteRecursively()
             createDirectories()
+            resolve("doctype").createDirectories()
         }
 
         PathUtil.defaultCodeFiles.forEach {
-            outputPath.resolve(it.relativePath)
+            context.outputPath.resolve(it.relativePath)
                 .apply { parent.createDirectories() }
                 .writeText(it.getContent(packageName))
             println("created: ${it.relativePath}")
         }
 
         docTypesGen.map {
-            val relativePath = "doctype/${it.prettyModule}/${it.prettyName}.kt"
-            outputPath.resolve(relativePath)
-                .apply { parent.createDirectories() }
-                .writeText(it.getCode(context).toString())
-            println("created: $relativePath")
+            it.buildFile(context)
+            println("created: ${it.relativePath}")
         }
 
         fileBuilder(
             packageName = "${context.packageName}.doctype",
-            fileName = "Helper.kt",
+            filePath = context.outputPath.resolve("doctype/_HelperDocTypes.kt"),
         ) {
             docTypesGen.forEach { it.addHelperCode(context) }
-        }.let { outputPath.resolve("doctype/Helper.kt").writeText(it.toString()) }
-
+        }
 
         fileBuilder(
             packageName = "${context.packageName}.doctype",
-            fileName = "Dummy.kt",
+            filePath = context.outputPath.resolve("doctype/_DummyDocTypes.kt"),
         ) {
             dummyDocTypes.forEach { docType -> docType.addDummyCode(context) }
-        }.let { outputPath.resolve("doctype/Dummy.kt").writeText(it.toString()) }
-
+        }
     }
 }

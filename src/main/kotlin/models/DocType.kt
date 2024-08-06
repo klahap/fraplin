@@ -21,15 +21,10 @@ data class DocType(
     }
 
 
-    val prettyModule = module?.toSnakeCase()
     val prettyName = docTypeName.toCamelCase(capitalized = true)
-    fun getPackageName(context: CodeGenContext) = listOfNotNull(
-        context.packageName, "doctype", prettyModule
-    ).joinToString(separator = ".")
+    val relativePath get() = "doctype/$prettyName.kt"
+    fun getPackageName(context: CodeGenContext) = "${context.packageName}.doctype"
 
-    fun getRelativePath() = listOfNotNull(
-        "doctype", prettyModule, "$prettyName.kt"
-    ).joinToString(separator = "/")
 
     fun getClassName(context: CodeGenContext) = ClassName(packageName = getPackageName(context), prettyName)
     fun getLinkClassName(context: CodeGenContext) = ClassName(packageName = getPackageName(context), prettyName, "Link")
@@ -58,9 +53,9 @@ data class DocType(
         }
     }
 
-    fun getCode(context: CodeGenContext) = fileBuilder(
+    fun buildFile(context: CodeGenContext) = fileBuilder(
         packageName = getPackageName(context),
-        fileName = prettyName,
+        filePath = context.outputPath.resolve(relativePath),
     ) {
         dataClass(name = prettyName) {
             addAnnotation(context.annotationSerializable)

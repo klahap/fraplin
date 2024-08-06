@@ -3,10 +3,14 @@ package io.github.klahap.fraplin.util
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.github.klahap.fraplin.models.DocType
+import java.nio.file.Path
+import kotlin.io.path.name
+import kotlin.io.path.writeText
 import kotlin.reflect.KClass
 
 data class CodeGenContext(
     val packageName: String,
+    val outputPath: Path,
     val docTypes: Map<String, DocType>
 ) {
     private val packageNameModel = "$packageName.model"
@@ -64,9 +68,11 @@ data class CodeGenContext(
 
 fun fileBuilder(
     packageName: String,
-    fileName: String,
+    filePath: Path,
     block: FileSpec.Builder.() -> Unit,
-) = FileSpec.builder(packageName, fileName).apply(block).build()
+) = FileSpec.builder(packageName, filePath.name).apply(block).build().let {
+    filePath.writeText(it.toString())
+}
 
 fun FileSpec.Builder.dataClass(
     name: String,
