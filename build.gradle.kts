@@ -1,15 +1,19 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     id("com.gradle.plugin-publish") version "1.2.1"
-    kotlin("jvm") version "1.9.20"
-    kotlin("plugin.serialization") version "1.9.20"
+    kotlin("jvm") version "2.0.10"
+    kotlin("plugin.serialization") version "2.0.10"
     `java-gradle-plugin`
     `kotlin-dsl`
 }
 
-group = "io.github.klahap.fraplin"
-version = System.getenv("FRAPLIN_VERSION") ?: "1.0.0-SNAPSHOT"
+val groupStr = "io.github.klahap.fraplin"
+val gitRepo = "https://github.com/klahap/fraplin"
+
+version = System.getenv("GIT_TAG_VERSION") ?: "1.0.0-SNAPSHOT"
+group = groupStr
 
 repositories {
     mavenCentral()
@@ -21,42 +25,29 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.20")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.0.10")
     implementation("org.jsoup:jsoup:1.15.3")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 }
 
-tasks.test {
-    useJUnitPlatform()
-}
-
-tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        freeCompilerArgs += "-Xjsr305=strict"
-        freeCompilerArgs += "-Xcontext-receivers"
-        jvmTarget = "21"
-    }
-}
-
 gradlePlugin {
-    website = "https://github.com/klahap/fraplin"
-    vcsUrl = "https://github.com/klahap/fraplin.git"
+    website = gitRepo
+    vcsUrl = "$gitRepo.git"
 
     val generateFrappeDsl by plugins.creating {
-        id = "io.github.klahap.fraplin"
-        implementationClass = "io.github.klahap.fraplin.Plugin"
+        id = groupStr
+        implementationClass = "$groupStr.Plugin"
         displayName = "Generate Kotlin Client for a Frappe Site"
         description = "A plugin that generates a Frappe REST client in Kotlin"
         tags = listOf("Frappe", "Client", "Kotlin", "Kotlin DSL", "generate")
     }
 }
 
-
-val compileKotlin: KotlinCompile by tasks
-compileKotlin.kotlinOptions {
-    languageVersion = "1.9"
-}
-val compileTestKotlin: KotlinCompile by tasks
-compileTestKotlin.kotlinOptions {
-    languageVersion = "1.9"
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xjsr305=strict")
+        freeCompilerArgs.add("-Xcontext-receivers")
+        jvmTarget.set(JvmTarget.JVM_21)
+        languageVersion.set(KotlinVersion.KOTLIN_2_0)
+    }
 }
