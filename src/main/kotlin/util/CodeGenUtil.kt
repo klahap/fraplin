@@ -9,11 +9,11 @@ import kotlinx.datetime.LocalTime
 import kotlin.reflect.KClass
 
 
-fun DocField.isNullable(forceNullable: Boolean): Boolean =
-    if (strictTyped)
-        nullable
-    else
-        nullable || forceNullable
+fun DocField.isNullable(forceNullable: Boolean): Boolean = when (nullable) {
+    DocField.Nullable.TRUE -> true
+    DocField.Nullable.FALSE_CONDITIONALLY -> forceNullable
+    DocField.Nullable.FALSE -> false
+}
 
 fun DocField.toClassVariablePropertySpec(
     parent: DocType,
@@ -179,6 +179,7 @@ fun DocField.getBaseTypeName(parent: DocType, context: CodeGenContext): TypeName
     is DocField.Table -> ClassName("kotlin.collections", "List").parameterizedBy(
         getChildClassName(context)
     )
+
     is DocField.DynamicLink -> String::class.asTypeName()
 }
 
@@ -202,5 +203,6 @@ fun DocField.toJsonElementTypeInitString(context: CodeGenContext, mutable: Boole
         context.jsonElementType,
         if (mutable) "MutableList<$prettyChildName>()" else "List<$prettyChildName>()",
     )
+
     is DocField.DynamicLink -> CodeBlock.of("%T.String", context.jsonElementType)
 }

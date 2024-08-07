@@ -10,21 +10,36 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed interface DocField {
     val fieldName: String
-    val nullable: Boolean
+    val nullable: Nullable
     val required: Boolean
-    val strictTyped: Boolean
     val originFieldType: FieldTypeRaw
     val prettyFieldName
         get() = fieldName.toCamelCase(capitalized = false)
             .let { if (it in kotlinKeywords) "`$it`" else it }
 
+    enum class Nullable {
+        TRUE,
+        FALSE_CONDITIONALLY, // because of mandatory is not mandatory in Frappe -.-
+        FALSE;
+
+        companion object {
+            fun get(nullable: Boolean, strictTyped: Boolean) = Nullable.entries.single {
+                when (it) {
+                    TRUE -> nullable
+                    FALSE_CONDITIONALLY -> !nullable && !strictTyped
+                    FALSE -> !nullable && strictTyped
+                }
+            }
+        }
+    }
+
+
     @Serializable
     @SerialName("Primitive")
     data class Primitive(
         override val fieldName: String,
-        override val nullable: Boolean,
+        override val nullable: Nullable,
         override val required: Boolean,
-        override val strictTyped: Boolean,
         override val originFieldType: FieldTypeRaw,
         val fieldType: Type,
     ) : DocField {
@@ -37,9 +52,8 @@ sealed interface DocField {
     @SerialName("Attach")
     data class Attach(
         override val fieldName: String,
-        override val nullable: Boolean,
+        override val nullable: Nullable,
         override val required: Boolean,
-        override val strictTyped: Boolean,
         override val originFieldType: FieldTypeRaw,
     ) : DocField
 
@@ -47,10 +61,9 @@ sealed interface DocField {
     @SerialName("Check")
     data class Check(
         override val fieldName: String,
-        override val nullable: Boolean,
+        override val nullable: Nullable,
         override val required: Boolean,
-        override val strictTyped: Boolean,
-    ) : DocField{
+    ) : DocField {
         override val originFieldType = FieldTypeRaw.Check
     }
 
@@ -58,9 +71,8 @@ sealed interface DocField {
     @SerialName("Select")
     data class Select(
         override val fieldName: String,
-        override val nullable: Boolean,
+        override val nullable: Nullable,
         override val required: Boolean,
-        override val strictTyped: Boolean,
         val options: Set<String>,
     ) : DocField {
         override val originFieldType = FieldTypeRaw.Select
@@ -92,9 +104,8 @@ sealed interface DocField {
     @SerialName("Link")
     data class Link(
         override val fieldName: String,
-        override val nullable: Boolean,
+        override val nullable: Nullable,
         override val required: Boolean,
-        override val strictTyped: Boolean,
         val option: String,
     ) : DocField {
         override val originFieldType = FieldTypeRaw.Link
@@ -109,9 +120,8 @@ sealed interface DocField {
     @SerialName("Table")
     data class Table(
         override val fieldName: String,
-        override val nullable: Boolean,
+        override val nullable: Nullable,
         override val required: Boolean,
-        override val strictTyped: Boolean,
         val option: String,
     ) : DocField {
         override val originFieldType = FieldTypeRaw.Table
@@ -125,9 +135,8 @@ sealed interface DocField {
     @SerialName("DynamicLink")
     data class DynamicLink(
         override val fieldName: String,
-        override val nullable: Boolean,
+        override val nullable: Nullable,
         override val required: Boolean,
-        override val strictTyped: Boolean,
         val option: String,
     ) : DocField {
         override val originFieldType = FieldTypeRaw.DynamicLink
@@ -137,9 +146,8 @@ sealed interface DocField {
     @SerialName("DocStatus")
     data object DocStatus : DocField {
         override val fieldName = "docstatus"
-        override val nullable = false
+        override val nullable = Nullable.FALSE
         override val required = false
-        override val strictTyped = true
         override val originFieldType = FieldTypeRaw.Int
     }
 }

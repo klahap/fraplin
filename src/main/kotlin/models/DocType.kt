@@ -43,8 +43,13 @@ sealed interface DocType {
     fun getLinkJsonTypeClassName(context: CodeGenContext) =
         ClassName(packageName = getPackageName(context), prettyName, "Link", "JsonType")
 
-    fun getLinkSerializerClassName(context: CodeGenContext, nullable: Boolean) =
-        ClassName(getPackageName(context), prettyName, "Link", if (nullable) "NullableSerializer" else "Serializer")
+    fun getLinkSerializerClassName(context: CodeGenContext, nullable: DocField.Nullable) = ClassName(
+        getPackageName(context), prettyName, "Link", when (nullable) {
+            DocField.Nullable.TRUE -> "NullableSerializer"
+            DocField.Nullable.FALSE_CONDITIONALLY -> "Serializer"
+            DocField.Nullable.FALSE -> "Serializer"
+        }
+    )
 
     companion object {
         context(FileSpec.Builder)

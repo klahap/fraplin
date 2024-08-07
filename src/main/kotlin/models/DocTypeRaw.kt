@@ -40,13 +40,14 @@ data class DocTypeRaw(
     companion object {
         private fun getDefaultFields(type: DocType.Type) = buildList {
             add("name", DocField.Primitive.Type.STRING, FieldTypeRaw.Data)
-            add(DocField.Link(
-                fieldName = "owner",
-                nullable = false,
-                required = false,
-                strictTyped = true,
-                option = "User",
-            ))
+            add(
+                DocField.Link(
+                    fieldName = "owner",
+                    nullable = DocField.Nullable.FALSE,
+                    required = false,
+                    option = "User",
+                )
+            )
             if (type != DocType.Type.SINGLE)
                 add("creation", DocField.Primitive.Type.DATETIME, FieldTypeRaw.DateTime)
             add("modified", DocField.Primitive.Type.DATETIME, FieldTypeRaw.DateTime)
@@ -62,9 +63,8 @@ data class DocTypeRaw(
         ) = add(
             DocField.Primitive(
                 fieldName = name,
-                nullable = false,
+                nullable = DocField.Nullable.FALSE,
                 required = false,
-                strictTyped = true,
                 fieldType = type,
                 originFieldType = originalType,
             )

@@ -23,44 +23,54 @@ interface IDocFieldRaw {
         FieldTypeRaw.HTMLEditor, FieldTypeRaw.MarkdownEditor, FieldTypeRaw.HTML,
         FieldTypeRaw.Icon, FieldTypeRaw.Password -> DocField.Primitive(
             fieldName = fieldName,
-            nullable = notNullable?.let { !it } ?: true,
+            nullable = DocField.Nullable.get(
+                nullable = notNullable?.let { !it } ?: true,
+                strictTyped = strictTyped,
+            ),
             required = required,
-            strictTyped = strictTyped,
             fieldType = DocField.Primitive.Type.STRING,
             originFieldType = fieldType,
         )
 
         FieldTypeRaw.Attach, FieldTypeRaw.AttachImage -> DocField.Attach(
             fieldName = fieldName,
-            nullable = notNullable?.let { !it } ?: true,
+            nullable = DocField.Nullable.get(
+                nullable = notNullable?.let { !it } ?: true,
+                strictTyped = strictTyped,
+            ),
             required = required,
-            strictTyped = strictTyped,
             originFieldType = fieldType,
         )
 
         FieldTypeRaw.DateTime -> DocField.Primitive(
             fieldName = fieldName,
-            nullable = notNullable?.let { !it } ?: true,
+            nullable = DocField.Nullable.get(
+                nullable = notNullable?.let { !it } ?: true,
+                strictTyped = strictTyped,
+            ),
             required = required,
-            strictTyped = strictTyped,
             fieldType = DocField.Primitive.Type.DATETIME,
             originFieldType = fieldType,
         )
 
         FieldTypeRaw.Date -> DocField.Primitive(
             fieldName = fieldName,
-            nullable = notNullable?.let { !it } ?: true,
+            nullable = DocField.Nullable.get(
+                nullable = notNullable?.let { !it } ?: true,
+                strictTyped = strictTyped,
+            ),
             required = required,
-            strictTyped = strictTyped,
             fieldType = DocField.Primitive.Type.DATE,
             originFieldType = fieldType,
         )
 
         FieldTypeRaw.Time -> DocField.Primitive(
             fieldName = fieldName,
-            nullable = notNullable?.let { !it } ?: true,
+            nullable = DocField.Nullable.get(
+                nullable = notNullable?.let { !it } ?: true,
+                strictTyped = strictTyped,
+            ),
             required = required,
-            strictTyped = strictTyped,
             fieldType = DocField.Primitive.Type.TIME,
             originFieldType = fieldType,
         )
@@ -69,9 +79,11 @@ interface IDocFieldRaw {
         FieldTypeRaw.Currency, FieldTypeRaw.Float, FieldTypeRaw.Duration,
         FieldTypeRaw.Percent, FieldTypeRaw.Rating -> DocField.Primitive(
             fieldName = fieldName,
-            nullable = notNullable?.let { !it } ?: true,
+            nullable = DocField.Nullable.get(
+                nullable = notNullable?.let { !it } ?: true,
+                strictTyped = strictTyped,
+            ),
             required = required,
-            strictTyped = strictTyped,
             fieldType = DocField.Primitive.Type.DOUBLE,
             originFieldType = fieldType,
         )
@@ -79,26 +91,32 @@ interface IDocFieldRaw {
         // int
         FieldTypeRaw.Int -> DocField.Primitive(
             fieldName = fieldName,
-            nullable = false,
+            nullable = DocField.Nullable.get(
+                nullable = false,
+                strictTyped = strictTyped,
+            ),
             required = required,
-            strictTyped = strictTyped,
             fieldType = DocField.Primitive.Type.INT,
             originFieldType = fieldType,
         )
 
         FieldTypeRaw.Check -> DocField.Check(
             fieldName = fieldName,
-            nullable = false,
+            nullable = DocField.Nullable.get(
+                nullable = false,
+                strictTyped = strictTyped,
+            ),
             required = required,
-            strictTyped = strictTyped,
         )
 
         FieldTypeRaw.Select -> run {
             DocField.Select(
                 fieldName = fieldName,
-                nullable = notNullable?.let { !it } ?: true,
+                nullable = DocField.Nullable.get(
+                    nullable = notNullable?.let { !it } ?: true,
+                    strictTyped = strictTyped,
+                ),
                 required = required,
-                strictTyped = strictTyped,
                 options = options?.split('\n')
                     ?.map { it.trim() }
                     ?.filter { it.isNotBlank() }
@@ -109,9 +127,11 @@ interface IDocFieldRaw {
         FieldTypeRaw.Link -> run {
             DocField.Link(
                 fieldName = fieldName,
-                nullable = notNullable?.let { !it } ?: true,
+                nullable = DocField.Nullable.get(
+                    nullable = notNullable?.let { !it } ?: true,
+                    strictTyped = strictTyped,
+                ),
                 required = required,
-                strictTyped = strictTyped,
                 option = options?.takeIf { it.isNotBlank() } ?: return@run null,
             )
         }
@@ -119,9 +139,11 @@ interface IDocFieldRaw {
         FieldTypeRaw.Table -> run {
             DocField.Table(
                 fieldName = fieldName,
-                nullable = notNullable?.let { !it } ?: true,
+                nullable = DocField.Nullable.get(
+                    nullable = notNullable?.let { !it } ?: true,
+                    strictTyped = strictTyped,
+                ),
                 required = required,
-                strictTyped = strictTyped,
                 option = options?.takeIf { it.isNotBlank() } ?: return@run null,
             )
         }
@@ -130,9 +152,11 @@ interface IDocFieldRaw {
         FieldTypeRaw.DynamicLink -> run {
             DocField.DynamicLink(
                 fieldName = fieldName,
-                nullable = notNullable?.let { !it } ?: true,
+                nullable = DocField.Nullable.get(
+                    nullable = notNullable?.let { !it } ?: true,
+                    strictTyped = strictTyped,
+                ),
                 required = required,
-                strictTyped = strictTyped,
                 option = options?.takeIf { it.isNotBlank() } ?: return@run null,
             )
         }
