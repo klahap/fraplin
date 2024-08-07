@@ -14,7 +14,7 @@ data class DocTypeRaw(
     @Serializable(with = BooleanAsIntSerializer::class)
     @SerialName("istable") val isTable: Boolean,
 ) {
-    private val type = DocType.Type.values().single {
+    private val type = DocType.Type.entries.single {
         when (it) {
             DocType.Type.NORMAL -> !isSingle && !isTable
             DocType.Type.SINGLE -> isSingle
@@ -22,10 +22,9 @@ data class DocTypeRaw(
         }
     }
 
-    fun toDocType(fields: List<IDocFieldRaw>, additionalInfo: DocTypeInfo? = null): DocType {
+    fun toDocType(fields: List<IDocFieldRaw>, additionalInfo: DocTypeInfo? = null): DocType.Full {
         val isStrictTyped = additionalInfo?.strictTyped ?: false
-        return DocType(
-            module = module,
+        return DocType.Full(
             docTypeName = name,
             docTypeType = type,
             fields = sequenceOf(
@@ -43,7 +42,6 @@ data class DocTypeRaw(
             add("name", DocField.Primitive.Type.STRING, FieldTypeRaw.Data)
             add(DocField.Link(
                 fieldName = "owner",
-                label = null,
                 nullable = false,
                 required = false,
                 strictTyped = true,
@@ -64,7 +62,6 @@ data class DocTypeRaw(
         ) = add(
             DocField.Primitive(
                 fieldName = name,
-                label = null,
                 nullable = false,
                 required = false,
                 strictTyped = true,

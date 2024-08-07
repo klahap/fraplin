@@ -1,30 +1,28 @@
 package io.github.klahap.fraplin
 
-import io.github.klahap.fraplin.services.FrappeCodeGenService
-import kotlinx.serialization.json.Json
-import java.io.FileNotFoundException
-import java.nio.file.Path
+import io.github.klahap.fraplin.services.FraplinService
 import kotlin.io.path.*
 import kotlin.system.exitProcess
 
-suspend fun generate(configPath: Path) {
-    if (!configPath.exists()) throw FileNotFoundException("file $configPath not found")
-    val config = Json.decodeFromString<FrappeDslGeneratorExtensionValid>(configPath.readText())
-    val frappeSiteClient = config.createClient()
-    val frappeCodeGenService = FrappeCodeGenService(frappeSiteClient)
-    frappeCodeGenService.generate(
-        packageName = config.packageName,
-        output = config.output,
-        docTypeInfos = config.docTypes,
-    )
-    exitProcess(0)
-}
 
 suspend fun main(args: Array<String>) {
-    if (args.size == 2 && args.first() == "generate") {
-        generate(Path(args.last()))
+    val service = FraplinService()
+    if (args.size == 2 && args.first() == "generateDsl") {
+        val config = service.readConfig(Path(args.last()))
+        val spec = service.readSpec(config.specFile)
+        service.generateDsl(config = config.output, spec = spec)
+    } else if (args.size == 2 && args.first() == "generateSpec") {
+        val config = service.readConfig(Path(args.last()))
+        val spec = service.generateSpec(config.input)
+        service.writeSpec(spec = spec, path = config.specFile)
+    } else if (args.size == 2 && args.first() == "generate") {
+        val config = service.readConfig(Path(args.last()))
+        val spec = service.generateSpec(config.input)
+        service.writeSpec(spec = spec, path = config.specFile)
+        service.generateDsl(config = config.output, spec = spec)
     } else {
         println("invalid args")
         exitProcess(1)
     }
+    exitProcess(0)
 }

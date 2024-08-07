@@ -23,7 +23,6 @@ interface IDocFieldRaw {
         FieldTypeRaw.HTMLEditor, FieldTypeRaw.MarkdownEditor, FieldTypeRaw.HTML,
         FieldTypeRaw.Icon, FieldTypeRaw.Password -> DocField.Primitive(
             fieldName = fieldName,
-            label = label,
             nullable = notNullable?.let { !it } ?: true,
             required = required,
             strictTyped = strictTyped,
@@ -33,7 +32,6 @@ interface IDocFieldRaw {
 
         FieldTypeRaw.Attach, FieldTypeRaw.AttachImage -> DocField.Attach(
             fieldName = fieldName,
-            label = label,
             nullable = notNullable?.let { !it } ?: true,
             required = required,
             strictTyped = strictTyped,
@@ -42,7 +40,6 @@ interface IDocFieldRaw {
 
         FieldTypeRaw.DateTime -> DocField.Primitive(
             fieldName = fieldName,
-            label = label,
             nullable = notNullable?.let { !it } ?: true,
             required = required,
             strictTyped = strictTyped,
@@ -52,7 +49,6 @@ interface IDocFieldRaw {
 
         FieldTypeRaw.Date -> DocField.Primitive(
             fieldName = fieldName,
-            label = label,
             nullable = notNullable?.let { !it } ?: true,
             required = required,
             strictTyped = strictTyped,
@@ -62,7 +58,6 @@ interface IDocFieldRaw {
 
         FieldTypeRaw.Time -> DocField.Primitive(
             fieldName = fieldName,
-            label = label,
             nullable = notNullable?.let { !it } ?: true,
             required = required,
             strictTyped = strictTyped,
@@ -74,7 +69,6 @@ interface IDocFieldRaw {
         FieldTypeRaw.Currency, FieldTypeRaw.Float, FieldTypeRaw.Duration,
         FieldTypeRaw.Percent, FieldTypeRaw.Rating -> DocField.Primitive(
             fieldName = fieldName,
-            label = label,
             nullable = notNullable?.let { !it } ?: true,
             required = required,
             strictTyped = strictTyped,
@@ -85,7 +79,6 @@ interface IDocFieldRaw {
         // int
         FieldTypeRaw.Int -> DocField.Primitive(
             fieldName = fieldName,
-            label = label,
             nullable = false,
             required = required,
             strictTyped = strictTyped,
@@ -95,7 +88,6 @@ interface IDocFieldRaw {
 
         FieldTypeRaw.Check -> DocField.Check(
             fieldName = fieldName,
-            label = label,
             nullable = false,
             required = required,
             strictTyped = strictTyped,
@@ -104,7 +96,6 @@ interface IDocFieldRaw {
         FieldTypeRaw.Select -> run {
             DocField.Select(
                 fieldName = fieldName,
-                label = label,
                 nullable = notNullable?.let { !it } ?: true,
                 required = required,
                 strictTyped = strictTyped,
@@ -118,7 +109,6 @@ interface IDocFieldRaw {
         FieldTypeRaw.Link -> run {
             DocField.Link(
                 fieldName = fieldName,
-                label = label,
                 nullable = notNullable?.let { !it } ?: true,
                 required = required,
                 strictTyped = strictTyped,
@@ -129,7 +119,6 @@ interface IDocFieldRaw {
         FieldTypeRaw.Table -> run {
             DocField.Table(
                 fieldName = fieldName,
-                label = label,
                 nullable = notNullable?.let { !it } ?: true,
                 required = required,
                 strictTyped = strictTyped,
@@ -141,7 +130,6 @@ interface IDocFieldRaw {
         FieldTypeRaw.DynamicLink -> run {
             DocField.DynamicLink(
                 fieldName = fieldName,
-                label = label,
                 nullable = notNullable?.let { !it } ?: true,
                 required = required,
                 strictTyped = strictTyped,

@@ -3,16 +3,19 @@ package io.github.klahap.fraplin.util
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.github.klahap.fraplin.models.DocType
+import io.github.klahap.fraplin.models.config.FraplinOutputConfig
 import java.nio.file.Path
 import kotlin.io.path.name
 import kotlin.io.path.writeText
 import kotlin.reflect.KClass
 
 data class CodeGenContext(
-    val packageName: String,
-    val outputPath: Path,
+    val config: FraplinOutputConfig,
     val docTypes: Map<String, DocType>
 ) {
+    val outputPath get() = config.path
+    val packageName get() = config.packageName
+
     private val packageNameModel = "$packageName.model"
     private val packageNameUtil = "$packageName.util"
     private val packageNameService = "$packageName.service"

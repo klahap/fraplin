@@ -8,7 +8,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 class FrappeCloudBaseService(
     private val token: String,
     private val team: String? = null,
-    private val baseHttpClient: OkHttpClient = OkHttpClient(),
+    private val client: OkHttpClient,
 ) {
     private val frappeCloudUrl = "https://frappecloud.com/api/method/press.api.site.login".toHttpUrl()
 
@@ -21,12 +21,12 @@ class FrappeCloudBaseService(
             team?.takeIfNotBlank()?.let {
                 header("X-Press-Team", it)
             }
-        }.send(baseHttpClient) {
+        }.send(client) {
             getJsonIfSuccessfulOrThrow<JsonObject>()["message"]!!.jsonObject["sid"]!!.jsonPrimitive.content
         }
         return FrappeSiteService(
             baseUrl = siteUrl,
-            client = baseHttpClient.newBuilder().addInterceptor { chain ->
+            client = client.newBuilder().addInterceptor { chain ->
                 chain.proceed(chain.request().newBuilder {
                     header("Cookie", "sid=$sid")
                     team?.takeIfNotBlank()?.let {

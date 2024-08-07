@@ -3,11 +3,13 @@ package io.github.klahap.fraplin.models
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import io.github.klahap.fraplin.util.*
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 
+@Serializable
 sealed interface DocField {
     val fieldName: String
-    val label: String?
     val nullable: Boolean
     val required: Boolean
     val strictTyped: Boolean
@@ -16,9 +18,10 @@ sealed interface DocField {
         get() = fieldName.toCamelCase(capitalized = false)
             .let { if (it in kotlinKeywords) "`$it`" else it }
 
+    @Serializable
+    @SerialName("Primitive")
     data class Primitive(
         override val fieldName: String,
-        override val label: String?,
         override val nullable: Boolean,
         override val required: Boolean,
         override val strictTyped: Boolean,
@@ -30,18 +33,20 @@ sealed interface DocField {
         }
     }
 
+    @Serializable
+    @SerialName("Attach")
     data class Attach(
         override val fieldName: String,
-        override val label: String?,
         override val nullable: Boolean,
         override val required: Boolean,
         override val strictTyped: Boolean,
         override val originFieldType: FieldTypeRaw,
     ) : DocField
 
+    @Serializable
+    @SerialName("Check")
     data class Check(
         override val fieldName: String,
-        override val label: String?,
         override val nullable: Boolean,
         override val required: Boolean,
         override val strictTyped: Boolean,
@@ -49,9 +54,10 @@ sealed interface DocField {
         override val originFieldType = FieldTypeRaw.Check
     }
 
+    @Serializable
+    @SerialName("Select")
     data class Select(
         override val fieldName: String,
-        override val label: String?,
         override val nullable: Boolean,
         override val required: Boolean,
         override val strictTyped: Boolean,
@@ -82,9 +88,10 @@ sealed interface DocField {
         }
     }
 
+    @Serializable
+    @SerialName("Link")
     data class Link(
         override val fieldName: String,
-        override val label: String?,
         override val nullable: Boolean,
         override val required: Boolean,
         override val strictTyped: Boolean,
@@ -98,9 +105,10 @@ sealed interface DocField {
             getDocType(context).getLinkSerializerClassName(context, nullable = nullable)
     }
 
+    @Serializable
+    @SerialName("Table")
     data class Table(
         override val fieldName: String,
-        override val label: String?,
         override val nullable: Boolean,
         override val required: Boolean,
         override val strictTyped: Boolean,
@@ -113,9 +121,10 @@ sealed interface DocField {
                 ?: throw RuntimeException("child doctype '$option' not loaded")
     }
 
+    @Serializable
+    @SerialName("DynamicLink")
     data class DynamicLink(
         override val fieldName: String,
-        override val label: String?,
         override val nullable: Boolean,
         override val required: Boolean,
         override val strictTyped: Boolean,
@@ -124,9 +133,10 @@ sealed interface DocField {
         override val originFieldType = FieldTypeRaw.DynamicLink
     }
 
+    @Serializable
+    @SerialName("DocStatus")
     data object DocStatus : DocField {
         override val fieldName = "docstatus"
-        override val label = null
         override val nullable = false
         override val required = false
         override val strictTyped = true

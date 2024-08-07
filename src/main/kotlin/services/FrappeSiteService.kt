@@ -17,15 +17,47 @@ class FrappeSiteService(
     constructor(
         siteUrl: HttpUrl,
         userApiToken: String,
-        httpClient: OkHttpClient = OkHttpClient(),
+        client: OkHttpClient,
     ) : this(
         baseUrl = siteUrl,
-        client = httpClient.newBuilder().addInterceptor {
+        client = client.newBuilder().addInterceptor {
             it.proceed(it.request().newBuilder().header("Authorization", "token $userApiToken").build())
         }.build()
     )
 
-    suspend fun getDocTypes(additionalInfo: Set<DocTypeInfo>): Flow<DocType> =
+    suspend fun getFraplinSpec(docTypeInfos: Set<DocTypeInfo>): FraplinSpec {
+        val allDocTypeInfo = docTypeInfos + setOf(DocTypeInfo(name = "User"))
+        val docTypeNames = allDocTypeInfo.map { it.name }.toSet()
+        val allDocTypes = getDocTypes(allDocTypeInfo).toList().associateBy { it.docTypeName }
+        if (!allDocTypes.keys.containsAll(docTypeNames))
+            throw Exception("doc types not found: ${docTypeNames - allDocTypes.keys}")
+
+        val baseDocTypes = allDocTypes.filterKeys { docTypeNames.contains(it) }.values.toList()
+        val childDocTypes = baseDocTypes.asSequence().flatMap { it.fields }
+            .filterIsInstance<DocField.Table>()
+            .map { it.option }.toSet()
+            .let { it - baseDocTypes.map { d -> d.docTypeName }.toSet() }
+            .map { allDocTypes[it]!! }
+
+        val docTypesGen = (baseDocTypes + childDocTypes).sortedBy { it.docTypeName }
+        val docTypesGenNames = docTypesGen.map { it.docTypeName }.toSet()
+        val docTypeDummyNames = docTypesGen.asSequence()
+            .flatMap { it.fields }
+            .filterIsInstance<DocField.Link>()
+            .map { it.option }
+            .filter { !docTypesGenNames.contains(it) }
+            .toSet()
+        val dummyDocTypes = allDocTypes
+            .filterKeys { docTypeDummyNames.contains(it) }.values
+            .map { it.toDummy() }
+            .sortedBy { it.docTypeName }
+        return FraplinSpec(
+            docTypes = docTypesGen,
+            dummyDocTypes = dummyDocTypes
+        )
+    }
+
+    private suspend fun getDocTypes(additionalInfo: Set<DocTypeInfo>): Flow<DocType.Full> =
         coroutineScope {
             withContext(Dispatchers.IO) {
                 val docTypes = async {

@@ -12,7 +12,6 @@ object PathUtil {
         val relativePath = listOfNotNull(packageName, fileName).joinToString("/")
 
         suspend fun getContent(packageName: String) = withContext(Dispatchers.IO) {
-
             PathUtil::class.java.getResourceAsStream("/default_code/$relativePath")!!.readAllBytes()
         }!!.decodeToString()
             .replaceFirst("package default_code", "package $packageName")
