@@ -11,7 +11,7 @@ import kotlin.reflect.KClass
 
 data class CodeGenContext(
     val config: FraplinOutputConfig,
-    val docTypes: Map<String, DocType>
+    val docTypes: Map<DocType.Name, DocType>
 ) {
     val outputPath get() = config.path
     val packageName get() = config.packageName

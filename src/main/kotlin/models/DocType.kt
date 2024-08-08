@@ -10,12 +10,18 @@ import kotlinx.serialization.json.JsonObject
 
 
 sealed interface DocType {
-    val docTypeName: String
+    val docTypeName: Name
     val docTypeType: Type
+
+    @JvmInline
+    value class Name(val value: String) : Comparable<Name> {
+        override fun compareTo(other: Name): Int = value.compareTo(other.value)
+        override fun toString(): String = value
+    }
 
     @Serializable
     data class Full(
-        override val docTypeName: String,
+        @Serializable(with = DocTypeNameSerializer::class) override val docTypeName: Name,
         override val docTypeType: Type,
         val fields: List<DocField>,
     ) : DocType {
@@ -24,7 +30,7 @@ sealed interface DocType {
 
     @Serializable
     data class Dummy(
-        override val docTypeName: String,
+        @Serializable(with = DocTypeNameSerializer::class) override val docTypeName: Name,
         override val docTypeType: Type,
     ) : DocType
 
@@ -35,7 +41,7 @@ sealed interface DocType {
     }
 
 
-    val prettyName get() = docTypeName.toCamelCase(capitalized = true)
+    val prettyName get() = docTypeName.value.toCamelCase(capitalized = true)
     val relativePath get() = "doctype/$prettyName.kt"
     fun getPackageName(context: CodeGenContext) = "${context.packageName}.doctype"
     fun getClassName(context: CodeGenContext) = ClassName(packageName = getPackageName(context), prettyName)
@@ -56,7 +62,7 @@ sealed interface DocType {
         fun DocType.addDummyCode(context: CodeGenContext) {
             clazz(prettyName) {
                 addAnnotation(context.annotationFrappeDocType) {
-                    addMember("docTypeName = %S", docTypeName)
+                    addMember("docTypeName = %S", docTypeName.value)
                 }
                 addDocTypeLinkClass(
                     docType = ClassName("", prettyName),
@@ -73,7 +79,7 @@ sealed interface DocType {
             dataClass(name = prettyName) {
                 addAnnotation(context.annotationSerializable)
                 addAnnotation(context.annotationFrappeDocType) {
-                    addMember("docTypeName = %S", docTypeName)
+                    addMember("docTypeName = %S", docTypeName.value)
                 }
                 addSuperinterface(context.getFrappeDocType(docTypeType))
                 primaryConstructor {

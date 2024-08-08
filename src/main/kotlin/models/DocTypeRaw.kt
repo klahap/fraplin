@@ -1,28 +1,29 @@
 package io.github.klahap.fraplin.models
 
 import io.github.klahap.fraplin.util.BooleanAsIntSerializer
+import io.github.klahap.fraplin.util.DocTypeNameSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 
 @Serializable
 data class DocTypeRaw(
-    @SerialName("name") val name: String,
-    @SerialName("module") val module: String,
+    @Serializable(with = DocTypeNameSerializer::class)
+    @SerialName("name") val name: DocType.Name,
     @Serializable(with = BooleanAsIntSerializer::class)
-    @SerialName("issingle") val isSingle: Boolean,
+    @SerialName("issingle") val isSingle: Boolean = false,
     @Serializable(with = BooleanAsIntSerializer::class)
-    @SerialName("istable") val isTable: Boolean,
+    @SerialName("istable") val isTable: Boolean = false,
 ) {
     private val type = DocType.Type.entries.single {
         when (it) {
             DocType.Type.NORMAL -> !isSingle && !isTable
-            DocType.Type.SINGLE -> isSingle
-            DocType.Type.CHILD -> isTable
+            DocType.Type.SINGLE -> isSingle && !isTable
+            DocType.Type.CHILD -> isTable && !isSingle
         }
     }
 
-    fun toDocType(fields: List<IDocFieldRaw>, additionalInfo: DocTypeInfo? = null): DocType.Full {
+    fun toDocType(fields: List<DocFieldRaw>, additionalInfo: DocTypeInfo? = null): DocType.Full {
         val isStrictTyped = additionalInfo?.strictTyped ?: false
         return DocType.Full(
             docTypeName = name,
@@ -45,7 +46,7 @@ data class DocTypeRaw(
                     fieldName = "owner",
                     nullable = DocField.Nullable.FALSE,
                     required = false,
-                    option = "User",
+                    option = DocType.Name("User"),
                 )
             )
             if (type != DocType.Type.SINGLE)

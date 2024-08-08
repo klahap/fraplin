@@ -6,6 +6,7 @@ import io.github.klahap.fraplin.models.config.FraplinInputConfig
 import io.github.klahap.fraplin.models.config.FraplinOutputConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
@@ -17,7 +18,11 @@ import kotlin.io.path.writeText
 
 class FraplinService(
     client: OkHttpClient = OkHttpClient(),
-    private val json: Json = Json { prettyPrint = true },
+    private val json: Json = Json {
+        prettyPrint = true
+        @OptIn(ExperimentalSerializationApi::class)
+        prettyPrintIndent = "  "
+    },
 ) {
     private val specService: FraplinSpecService = FraplinSpecService(client)
     private val codeGenService: FrappeCodeGenService = FrappeCodeGenService()

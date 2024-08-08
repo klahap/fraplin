@@ -25,39 +25,7 @@ class FrappeSiteService(
         }.build()
     )
 
-    suspend fun getFraplinSpec(docTypeInfos: Set<DocTypeInfo>): FraplinSpec {
-        val allDocTypeInfo = docTypeInfos + setOf(DocTypeInfo(name = "User"))
-        val docTypeNames = allDocTypeInfo.map { it.name }.toSet()
-        val allDocTypes = getDocTypes(allDocTypeInfo).toList().associateBy { it.docTypeName }
-        if (!allDocTypes.keys.containsAll(docTypeNames))
-            throw Exception("doc types not found: ${docTypeNames - allDocTypes.keys}")
-
-        val baseDocTypes = allDocTypes.filterKeys { docTypeNames.contains(it) }.values.toList()
-        val childDocTypes = baseDocTypes.asSequence().flatMap { it.fields }
-            .filterIsInstance<DocField.Table>()
-            .map { it.option }.toSet()
-            .let { it - baseDocTypes.map { d -> d.docTypeName }.toSet() }
-            .map { allDocTypes[it]!! }
-
-        val docTypesGen = (baseDocTypes + childDocTypes).sortedBy { it.docTypeName }
-        val docTypesGenNames = docTypesGen.map { it.docTypeName }.toSet()
-        val docTypeDummyNames = docTypesGen.asSequence()
-            .flatMap { it.fields }
-            .filterIsInstance<DocField.Link>()
-            .map { it.option }
-            .filter { !docTypesGenNames.contains(it) }
-            .toSet()
-        val dummyDocTypes = allDocTypes
-            .filterKeys { docTypeDummyNames.contains(it) }.values
-            .map { it.toDummy() }
-            .sortedBy { it.docTypeName }
-        return FraplinSpec(
-            docTypes = docTypesGen,
-            dummyDocTypes = dummyDocTypes
-        )
-    }
-
-    private suspend fun getDocTypes(additionalInfo: Set<DocTypeInfo>): Flow<DocType.Full> =
+    suspend fun getDocTypes(additionalInfo: Set<DocTypeInfo>): Collection<DocType.Full> =
         coroutineScope {
             withContext(Dispatchers.IO) {
                 val docTypes = async {
@@ -68,21 +36,18 @@ class FrappeSiteService(
                 val docFields = async {
                     loadBatches(docType = "DocField", batchSize = 1000) {
                         addQueryParameter("parent", "DocType")
-                        addQueryParameter("fields", getFilterList<DocFieldRaw>())
-                    }.map { json.decodeFromJsonElement<DocFieldRaw>(it) }
+                        addQueryParameter("fields", getFilterList<DocFieldRaw.Common>())
+                    }.map { json.decodeFromJsonElement<DocFieldRaw.Common>(it) }
                 }
                 val docCustomFields = async {
                     loadBatches(docType = "Custom Field", batchSize = 1000) {
-                        addQueryParameter("fields", getFilterList<DocCustomFieldRaw>())
-                    }.map { json.decodeFromJsonElement<DocCustomFieldRaw>(it) }
+                        addQueryParameter("fields", getFilterList<DocFieldRaw.Custom>())
+                    }.map { json.decodeFromJsonElement<DocFieldRaw.Custom>(it) }
                 }
-                val additionalInfoMap = additionalInfo.associateBy { it.name }
-                val allFields = (docFields.await() + docCustomFields.await()).groupBy { it.parent }
-                docTypes.await().map { docType ->
-                    val fields = allFields[docType.name] ?: emptyList()
-                    val info = additionalInfoMap[docType.name]
-                    docType.toDocType(fields = fields, additionalInfo = info)
-                }.asFlow()
+                DocTypeDataRaw(
+                    docTypes = docTypes.await(),
+                    docFields = docFields.await() + docCustomFields.await()
+                ).merge(additionalInfo = additionalInfo)
             }
         }
 

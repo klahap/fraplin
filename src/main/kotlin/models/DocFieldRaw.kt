@@ -1,18 +1,18 @@
 package io.github.klahap.fraplin.models
 
 import io.github.klahap.fraplin.util.BooleanAsIntSerializer
+import io.github.klahap.fraplin.util.DocTypeNameSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 
-interface IDocFieldRaw {
-    val parent: String
+interface DocFieldRaw {
+    val parent: DocType.Name
     val fieldName: String
-    val label: String?
     val fieldType: FieldTypeRaw
-    val notNullable: Boolean?
     val required: Boolean
     val options: String?
+    val notNullable: Boolean get() = required
 
     fun toDocField(strictTyped: Boolean): DocField? = when (fieldType) {
         // string
@@ -23,10 +23,7 @@ interface IDocFieldRaw {
         FieldTypeRaw.HTMLEditor, FieldTypeRaw.MarkdownEditor, FieldTypeRaw.HTML,
         FieldTypeRaw.Icon, FieldTypeRaw.Password -> DocField.Primitive(
             fieldName = fieldName,
-            nullable = DocField.Nullable.get(
-                nullable = notNullable?.let { !it } ?: true,
-                strictTyped = strictTyped,
-            ),
+            nullable = DocField.Nullable.get(nullable = !notNullable, strictTyped = strictTyped),
             required = required,
             fieldType = DocField.Primitive.Type.STRING,
             originFieldType = fieldType,
@@ -34,20 +31,14 @@ interface IDocFieldRaw {
 
         FieldTypeRaw.Attach, FieldTypeRaw.AttachImage -> DocField.Attach(
             fieldName = fieldName,
-            nullable = DocField.Nullable.get(
-                nullable = notNullable?.let { !it } ?: true,
-                strictTyped = strictTyped,
-            ),
+            nullable = DocField.Nullable.get(nullable = !notNullable, strictTyped = strictTyped),
             required = required,
             originFieldType = fieldType,
         )
 
         FieldTypeRaw.DateTime -> DocField.Primitive(
             fieldName = fieldName,
-            nullable = DocField.Nullable.get(
-                nullable = notNullable?.let { !it } ?: true,
-                strictTyped = strictTyped,
-            ),
+            nullable = DocField.Nullable.get(nullable = !notNullable, strictTyped = strictTyped),
             required = required,
             fieldType = DocField.Primitive.Type.DATETIME,
             originFieldType = fieldType,
@@ -55,10 +46,7 @@ interface IDocFieldRaw {
 
         FieldTypeRaw.Date -> DocField.Primitive(
             fieldName = fieldName,
-            nullable = DocField.Nullable.get(
-                nullable = notNullable?.let { !it } ?: true,
-                strictTyped = strictTyped,
-            ),
+            nullable = DocField.Nullable.get(nullable = !notNullable, strictTyped = strictTyped),
             required = required,
             fieldType = DocField.Primitive.Type.DATE,
             originFieldType = fieldType,
@@ -66,10 +54,7 @@ interface IDocFieldRaw {
 
         FieldTypeRaw.Time -> DocField.Primitive(
             fieldName = fieldName,
-            nullable = DocField.Nullable.get(
-                nullable = notNullable?.let { !it } ?: true,
-                strictTyped = strictTyped,
-            ),
+            nullable = DocField.Nullable.get(nullable = !notNullable, strictTyped = strictTyped),
             required = required,
             fieldType = DocField.Primitive.Type.TIME,
             originFieldType = fieldType,
@@ -79,10 +64,7 @@ interface IDocFieldRaw {
         FieldTypeRaw.Currency, FieldTypeRaw.Float, FieldTypeRaw.Duration,
         FieldTypeRaw.Percent, FieldTypeRaw.Rating -> DocField.Primitive(
             fieldName = fieldName,
-            nullable = DocField.Nullable.get(
-                nullable = notNullable?.let { !it } ?: true,
-                strictTyped = strictTyped,
-            ),
+            nullable = DocField.Nullable.get(nullable = !notNullable, strictTyped = strictTyped),
             required = required,
             fieldType = DocField.Primitive.Type.DOUBLE,
             originFieldType = fieldType,
@@ -91,10 +73,7 @@ interface IDocFieldRaw {
         // int
         FieldTypeRaw.Int -> DocField.Primitive(
             fieldName = fieldName,
-            nullable = DocField.Nullable.get(
-                nullable = false,
-                strictTyped = strictTyped,
-            ),
+            nullable = DocField.Nullable.get(nullable = false, strictTyped = strictTyped),
             required = required,
             fieldType = DocField.Primitive.Type.INT,
             originFieldType = fieldType,
@@ -102,20 +81,14 @@ interface IDocFieldRaw {
 
         FieldTypeRaw.Check -> DocField.Check(
             fieldName = fieldName,
-            nullable = DocField.Nullable.get(
-                nullable = false,
-                strictTyped = strictTyped,
-            ),
+            nullable = DocField.Nullable.get(nullable = false, strictTyped = strictTyped),
             required = required,
         )
 
         FieldTypeRaw.Select -> run {
             DocField.Select(
                 fieldName = fieldName,
-                nullable = DocField.Nullable.get(
-                    nullable = notNullable?.let { !it } ?: true,
-                    strictTyped = strictTyped,
-                ),
+                nullable = DocField.Nullable.get(nullable = !notNullable, strictTyped = strictTyped),
                 required = required,
                 options = options?.split('\n')
                     ?.map { it.trim() }
@@ -127,24 +100,18 @@ interface IDocFieldRaw {
         FieldTypeRaw.Link -> run {
             DocField.Link(
                 fieldName = fieldName,
-                nullable = DocField.Nullable.get(
-                    nullable = notNullable?.let { !it } ?: true,
-                    strictTyped = strictTyped,
-                ),
+                nullable = DocField.Nullable.get(nullable = !notNullable, strictTyped = strictTyped),
                 required = required,
-                option = options?.takeIf { it.isNotBlank() } ?: return@run null,
+                option = options?.takeIf { it.isNotBlank() }?.let { DocType.Name(it) } ?: return@run null,
             )
         }
 
         FieldTypeRaw.Table -> run {
             DocField.Table(
                 fieldName = fieldName,
-                nullable = DocField.Nullable.get(
-                    nullable = notNullable?.let { !it } ?: true,
-                    strictTyped = strictTyped,
-                ),
+                nullable = DocField.Nullable.get(nullable = !notNullable, strictTyped = strictTyped),
                 required = required,
-                option = options?.takeIf { it.isNotBlank() } ?: return@run null,
+                option = options?.takeIf { it.isNotBlank() }?.let { DocType.Name(it) } ?: return@run null,
             )
         }
 
@@ -152,10 +119,7 @@ interface IDocFieldRaw {
         FieldTypeRaw.DynamicLink -> run {
             DocField.DynamicLink(
                 fieldName = fieldName,
-                nullable = DocField.Nullable.get(
-                    nullable = notNullable?.let { !it } ?: true,
-                    strictTyped = strictTyped,
-                ),
+                nullable = DocField.Nullable.get(nullable = !notNullable, strictTyped = strictTyped),
                 required = required,
                 option = options?.takeIf { it.isNotBlank() } ?: return@run null,
             )
@@ -169,32 +133,27 @@ interface IDocFieldRaw {
         FieldTypeRaw.SectionBreak, FieldTypeRaw.TabBreak,
         FieldTypeRaw.Note, FieldTypeRaw.Image -> null
     }
-}
 
 
-@Serializable
-data class DocFieldRaw(
-    @SerialName("parent") override val parent: String,
-    @SerialName("fieldname") override val fieldName: String,
-    @SerialName("label") override val label: String? = null,
-    @SerialName("fieldtype") override val fieldType: FieldTypeRaw,
-    @Serializable(with = BooleanAsIntSerializer::class)
-    @SerialName("reqd") override val required: Boolean,
-    @SerialName("options") override val options: String? = null,
-) : IDocFieldRaw {
-    override val notNullable: Boolean = required
-}
+    @Serializable
+    data class Common(
+        @Serializable(with = DocTypeNameSerializer::class)
+        @SerialName("parent") override val parent: DocType.Name,
+        @SerialName("fieldname") override val fieldName: String,
+        @SerialName("fieldtype") override val fieldType: FieldTypeRaw,
+        @Serializable(with = BooleanAsIntSerializer::class)
+        @SerialName("reqd") override val required: Boolean,
+        @SerialName("options") override val options: String? = null,
+    ) : DocFieldRaw
 
-
-@Serializable
-data class DocCustomFieldRaw(
-    @SerialName("dt") override val parent: String,
-    @SerialName("fieldname") override val fieldName: String,
-    @SerialName("label") override val label: String? = null,
-    @SerialName("fieldtype") override val fieldType: FieldTypeRaw,
-    @Serializable(with = BooleanAsIntSerializer::class)
-    @SerialName("reqd") override val required: Boolean,
-    @SerialName("options") override val options: String? = null,
-) : IDocFieldRaw {
-    override val notNullable: Boolean = required
+    @Serializable
+    data class Custom(
+        @Serializable(with = DocTypeNameSerializer::class)
+        @SerialName("dt") override val parent: DocType.Name,
+        @SerialName("fieldname") override val fieldName: String,
+        @SerialName("fieldtype") override val fieldType: FieldTypeRaw,
+        @Serializable(with = BooleanAsIntSerializer::class)
+        @SerialName("reqd") override val required: Boolean,
+        @SerialName("options") override val options: String? = null,
+    ) : DocFieldRaw
 }

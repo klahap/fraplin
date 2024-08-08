@@ -106,7 +106,8 @@ sealed interface DocField {
         override val fieldName: String,
         override val nullable: Nullable,
         override val required: Boolean,
-        val option: String,
+        @Serializable(with = DocTypeNameSerializer::class)
+        val option: DocType.Name,
     ) : DocField {
         override val originFieldType = FieldTypeRaw.Link
         fun getDocType(context: CodeGenContext) = context.docTypes[option]!!
@@ -122,10 +123,11 @@ sealed interface DocField {
         override val fieldName: String,
         override val nullable: Nullable,
         override val required: Boolean,
-        val option: String,
+        @Serializable(with = DocTypeNameSerializer::class)
+        val option: DocType.Name,
     ) : DocField {
         override val originFieldType = FieldTypeRaw.Table
-        val prettyChildName = option.toCamelCase(capitalized = true)
+        val prettyChildName = option.value.toCamelCase(capitalized = true)
         fun getChildClassName(context: CodeGenContext) =
             context.docTypes[option]?.getClassName(context)
                 ?: throw RuntimeException("child doctype '$option' not loaded")

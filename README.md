@@ -26,29 +26,53 @@ Configure the Fraplin plugin in your `build.gradle.kts` file:
 
 ```kotlin
 
-frappeDslGenerator {
-    // use Frappe Cloud creds to connect to a Frappe Site
-    site = FrappeDslGeneratorExtension.SiteConfig.Cloud(
-        url = System.getenv("FRAPPE_SITE_URL").toHttpUrl(),
-        cloudToken = System.getenv("FRAPPE_CLOUD_API_TOKEN"),
-    )
-    
-    // or use directly an API of a Frappe Site
-    site = FrappeDslGeneratorExtension.SiteConfig.Site(
-        url = System.getenv("FRAPPE_SITE_URL").toHttpUrl(),
-        userToken = System.getenv("FRAPPE_USER_API_TOKEN"),
-    )
+fraplin {
+    // Specify the path to the file that stores all DocTypes.
+    // This file can be generated with `gradle generateFraplinSpec` 
+    // or used as input to generate the DSL with `gradle generateFraplinDsl`
+    specFile = Path("$projectDir/src/main/resources/fraplin.json")
 
-    packageName = "com.example.frappe.dsl"
-    output = "$buildDir/generated/frappe/dsl"
-    docTypes = setOf(
-        DocTypeInfo("Company", strictTyped = true),
-        DocTypeInfo("Account"),
-        DocTypeInfo("Website Settings"),
-        DocTypeInfo("Web Page"),
-        DocTypeInfo("Email Domain"),
-        DocTypeInfo("Email Account"),
-    )
+    output { // Define output settings
+        packageName = "com.example.frappe.dsl"
+        output = "$buildDir/generated/frappe/dsl"
+    }
+
+    input { // Define input sources for generating DocTypes
+        sourceSite { // Use a direct API connection to a Frappe Site
+            url = System.getenv("FRAPPE_SITE_URL").toHttpUrl()
+            userToken = System.getenv("FRAPPE_USER_API_TOKEN")
+        }
+        sourceCloud { // Or, use Frappe Cloud credentials to connect to a Frappe Site
+            url = System.getenv("FRAPPE_SITE_URL").toHttpUrl()
+            cloudToken = System.getenv("FRAPPE_CLOUD_API_TOKEN")
+            team = System.getenv("FRAPPE_CLOUD_TEAM")
+        }
+        sourceRepo { // Or, use GitHub repositories as a source
+            gitHub { // public GitHub repository
+                owner = "frappe"; repo = "frappe"; version = "v15.36.1"
+            }
+            gitHub { // private GitHub repository
+                owner = "foobar"; repo = "hello_world"; version = "f92bcc0faff8f7aed11c90421f27264b779ba6b6"
+                appName = "my_app"
+                creds {
+                    username = System.getenv("GITHUB_USERNAME")
+                    token = System.getenv("GITHUB_TOKEN")
+                }
+            }
+            local { // local git repository
+                path = Path("/my/local/frappe/app/repo/my_app")
+                appName = "my_app"
+            }
+        }
+
+        // Add DocTypes to be generated
+        addDocType("Company", strictTyped = true)
+        addDocType("Account")
+        addDocType("Website Settings")
+        addDocType("Web Page")
+        addDocType("Email Domain")
+        addDocType("Email Account")
+    }
 }
 ```
 
@@ -57,7 +81,7 @@ frappeDslGenerator {
 Run the following Gradle task to generate the Kotlin DSL:
 
 ```bash
-./gradlew generateFrappeDsl
+./gradlew generateFraplin
 ```
 
 This will generate Kotlin classes representing your Frappe site's data models and CRUD operations.

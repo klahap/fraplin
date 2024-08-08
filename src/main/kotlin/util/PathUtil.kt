@@ -2,6 +2,10 @@ package io.github.klahap.fraplin.util
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.nio.file.Path
+import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.createTempDirectory
+import kotlin.io.path.deleteRecursively
 
 
 object PathUtil {
@@ -16,6 +20,12 @@ object PathUtil {
         }!!.decodeToString()
             .replaceFirst("package default_code", "package $packageName")
             .replace("import default_code", "import $packageName")
+    }
+
+    suspend fun <T> tempDir(block: suspend (Path) -> T): T = createTempDirectory().let {
+        val result = runCatching { block(it) }
+        @OptIn(ExperimentalPathApi::class) it.deleteRecursively()
+        result.getOrThrow()
     }
 
     val defaultCodeFiles = buildSet {

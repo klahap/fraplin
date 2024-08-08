@@ -1,5 +1,6 @@
 package io.github.klahap.fraplin.util
 
+import io.github.klahap.fraplin.models.DocType
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -53,4 +54,10 @@ object PathSerializer : KSerializer<Path> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Path", PrimitiveKind.STRING)
     override fun serialize(encoder: Encoder, value: Path) = encoder.encodeString(value.toString())
     override fun deserialize(decoder: Decoder) = Path(decoder.decodeString())
+}
+
+object DocTypeNameSerializer : KSerializer<DocType.Name> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("DocTypeName", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: DocType.Name) = encoder.encodeString(value.value)
+    override fun deserialize(decoder: Decoder) = DocType.Name(decoder.decodeString())
 }
