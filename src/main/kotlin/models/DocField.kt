@@ -73,10 +73,15 @@ sealed interface DocField {
         override val fieldName: String,
         override val nullable: Nullable,
         override val required: Boolean,
+        @Serializable(with = DocTypeNameSerializer::class) val parentName: DocType.Name,
         val options: Set<String>,
     ) : DocField {
         override val originFieldType = FieldTypeRaw.Select
         val enumName = fieldName.toCamelCase(capitalized = true)
+        fun getOpenApiEnumName(context: OpenApiGenContext) =
+            context.schemaPrefix + parentName.value.toCamelCase(capitalized = true) + enumName
+
+        val prettyOptions = options.associateBy { it.toCamelCase(capitalized = true) }
         private val enumType get() = ClassName("", enumName)
 
         fun getEnumSpec(config: CodeGenContext) = enumBuilder(enumName) {
@@ -87,10 +92,10 @@ sealed interface DocField {
                 }
                 addSuperinterface(config.frappeEnum(enumName))
             }
-            options.forEach { option ->
-                addEnumConstant(name = option.toCamelCase(capitalized = true)) {
-                    addAnnotation(config.annotationSerialName) { addMember("%S", option) }
-                    addSuperclassConstructorParameter("%S", option)
+            prettyOptions.forEach { (key, value) ->
+                addEnumConstant(name = key) {
+                    addAnnotation(config.annotationSerialName) { addMember("%S", value) }
+                    addSuperclassConstructorParameter("%S", value)
                 }
             }
             addObject(name = "NullableSerializer") {

@@ -2,6 +2,9 @@ package io.github.klahap.fraplin.models
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import io.github.klahap.fraplin.models.openapi.Component
+import io.github.klahap.fraplin.models.openapi.Path
+import io.github.klahap.fraplin.models.openapi.Schema
 import io.github.klahap.fraplin.util.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
@@ -11,7 +14,11 @@ import kotlinx.serialization.json.JsonObject
 
 sealed interface DocType {
     val docTypeName: Name
-    val docTypeType: Type
+
+    sealed interface Full : DocType {
+        val fields: List<DocField>
+        fun toDummy(): Dummy
+    }
 
     @JvmInline
     value class Name(val value: String) : Comparable<Name> {
@@ -20,18 +27,25 @@ sealed interface DocType {
     }
 
     @Serializable
-    data class Full(
+    data class Base(
         @Serializable(with = DocTypeNameSerializer::class) override val docTypeName: Name,
-        override val docTypeType: Type,
-        val fields: List<DocField>,
-    ) : DocType {
-        fun toDummy() = Dummy(docTypeName = docTypeName, docTypeType = docTypeType)
+        val docTypeType: Type,
+        override val fields: List<DocField>,
+    ) : Full {
+        override fun toDummy() = Dummy(docTypeName = docTypeName)
+    }
+
+    @Serializable
+    data class Virtual(
+        @Serializable(with = DocTypeNameSerializer::class) override val docTypeName: Name,
+        override val fields: List<DocField>,
+    ) : Full {
+        override fun toDummy() = Dummy(docTypeName = docTypeName)
     }
 
     @Serializable
     data class Dummy(
         @Serializable(with = DocTypeNameSerializer::class) override val docTypeName: Name,
-        override val docTypeType: Type,
     ) : DocType
 
     enum class Type(val creatable: Boolean) {
@@ -68,11 +82,11 @@ sealed interface DocType {
                     docType = ClassName("", prettyName),
                     context = context,
                 )
-                addSuperinterface(context.getFrappeDocType(docTypeType))
+                addSuperinterface(context.frappeDummyDocType)
             }
         }
 
-        fun Full.buildFile(context: CodeGenContext) = fileBuilder(
+        fun Base.buildFile(context: CodeGenContext) = fileBuilder(
             packageName = getPackageName(context),
             filePath = context.outputPath.resolve(relativePath),
         ) {
@@ -85,12 +99,12 @@ sealed interface DocType {
                 primaryConstructor {
                     fields.forEach { field ->
                         addParameter(field.toClassVariableSpec(
-                            parent = this@Full,
+                            parent = this@Base,
                             context = context,
                         ) {})
                         addProperty(
                             field.toClassVariablePropertySpec(
-                                parent = this@Full,
+                                parent = this@Base,
                                 context = context,
                             )
                         )
@@ -104,6 +118,7 @@ sealed interface DocType {
                     docType = ClassName("", prettyName),
                     context = context,
                 )
+
                 clazz(name = "Builder") {
                     val builderDataName = "_builderData".makeDifferent(fields.map { it.prettyFieldName })
                     addSuperinterface(
@@ -168,7 +183,7 @@ sealed interface DocType {
                             }
                         }
                         val baseType = field.getBaseTypeName(
-                            parent = this@Full,
+                            parent = this@Base,
                             context = context,
                         )
                         addProperty(
@@ -194,7 +209,7 @@ sealed interface DocType {
         }
 
         context(FileSpec.Builder)
-        fun Full.addHelperCode(context: CodeGenContext) {
+        fun Base.addHelperCode(context: CodeGenContext) {
 
             val className = getClassName(context)
             val linkClassName = getLinkClassName(context)
@@ -212,7 +227,7 @@ sealed interface DocType {
                 reqFields.forEach { field ->
                     addParameter(
                         field.toClassConstructorVariableSpec(
-                            parent = this@Full,
+                            parent = this@Base,
                             context = context,
                         ) {})
                 }
@@ -427,6 +442,62 @@ sealed interface DocType {
                     addStatement("this.addJsonValue(%L.build())", builderName)
                     addStatement("return this")
                 }
+        }
+
+        private fun Virtual.getBaseSchemaName(context: OpenApiGenContext) = "${context.schemaPrefix}$prettyName"
+
+        fun Virtual.toOpenApiComponents(context: OpenApiGenContext): Collection<Component> {
+            val base = Component.Object(
+                name = getBaseSchemaName(context),
+                properties = fields.map {
+                    Component.Object.Property(
+                        name = it.fieldName,
+                        required = it.required,
+                        schema = it.toOpenApiSchema(context)
+                    )
+                }
+            )
+            val childs = fields.mapNotNull {
+                when (it) {
+                    is DocField.Select -> it.getOpenApiSpecEnum(context)
+                    is DocField.Attach, is DocField.Check, DocField.DocStatus,
+                    is DocField.DynamicLink, is DocField.Link, is DocField.Primitive,
+                    is DocField.Table -> null
+                }
+            }
+            return listOf(base) + childs
+        }
+
+        fun Virtual.toOpenApiPaths(context: OpenApiGenContext): Collection<Path> {
+            val pathPrefix = context.pathPrefix + docTypeName.value.toHyphenated()
+            val getAllPath = Path(
+                route = pathPrefix,
+                tags = context.tags,
+                operationId = "getAll$prettyName",
+                parameters = emptyList(),
+                response = Path.Response(
+                    description = "get all $prettyName",
+                    schema = Schema.ArrayRef(Component.Ref(getBaseSchemaName(context)))
+                )
+            )
+            val getPath = Path(
+                route = "$pathPrefix/{name}",
+                tags = context.tags,
+                operationId = "get$prettyName",
+                parameters = listOf(
+                    Path.Parameter(
+                        name = "name",
+                        source = Path.Parameter.Source.PATH,
+                        required = true,
+                        schema = Schema.Primitive(type = "string")
+                    )
+                ),
+                response = Path.Response(
+                    description = "get $prettyName by name",
+                    schema = Schema.Ref(Component.Ref(getBaseSchemaName(context)))
+                )
+            )
+            return listOf(getAllPath, getPath)
         }
     }
 }

@@ -40,6 +40,9 @@ fun String.toSnakeCase() = toNameParts()
     .joinToString(separator = "_") { it.lowercase() }
     .toValidName()
 
+fun String.toHyphenated() = toNameParts()
+    .joinToString(separator = "-") { it.lowercase() }
+    .toValidName()
 
 fun String.makeDifferent(blackList: Iterable<String>): String {
     val blackListSet = blackList.toSet()

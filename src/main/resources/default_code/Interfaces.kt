@@ -2,7 +2,6 @@ package default_code
 
 import kotlinx.serialization.json.JsonElement
 import kotlin.reflect.KClass
-import kotlin.reflect.KProperty1
 
 
 sealed interface DocTypeAbility {
@@ -21,10 +20,12 @@ sealed interface DocType {
 
     interface Child : DocType, DocTypeAbility.Query, DocTypeAbility.Create, DocTypeAbility.Update,
         DocTypeAbility.Delete, DocTypeAbility.Read
+
+    interface Dummy : DocType
 }
 
 
-interface DocTypeBuilder<D: DocType, T> {
+interface DocTypeBuilder<D : DocType, T> {
     operator fun get(field: String): JsonElement?
     operator fun set(field: String, value: JsonElement)
     fun remove(field: String): JsonElement?

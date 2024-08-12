@@ -14,7 +14,7 @@ interface DocFieldRaw {
     val options: String?
     val notNullable: Boolean get() = required
 
-    fun toDocField(strictTyped: Boolean): DocField? = when (fieldType) {
+    fun toDocField(parent: DocTypeRaw, strictTyped: Boolean): DocField? = when (fieldType) {
         // string
         FieldTypeRaw.Data, FieldTypeRaw.Barcode, FieldTypeRaw.Code,
         FieldTypeRaw.Color, FieldTypeRaw.Signature, FieldTypeRaw.SmallText,
@@ -90,6 +90,7 @@ interface DocFieldRaw {
                 fieldName = fieldName,
                 nullable = DocField.Nullable.get(nullable = !notNullable, strictTyped = strictTyped),
                 required = required,
+                parentName = parent.name,
                 options = options?.split('\n')
                     ?.map { it.trim() }
                     ?.filter { it.isNotBlank() }
