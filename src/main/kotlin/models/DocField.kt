@@ -73,7 +73,7 @@ sealed interface DocField {
         override val fieldName: String,
         override val nullable: Nullable,
         override val required: Boolean,
-        @Serializable(with = DocTypeNameSerializer::class) val parentName: DocType.Name,
+        val parentName: DocType.Name,
         val options: Set<String>,
     ) : DocField {
         override val originFieldType = FieldTypeRaw.Select
@@ -111,7 +111,6 @@ sealed interface DocField {
         override val fieldName: String,
         override val nullable: Nullable,
         override val required: Boolean,
-        @Serializable(with = DocTypeNameSerializer::class)
         val option: DocType.Name,
     ) : DocField {
         override val originFieldType = FieldTypeRaw.Link
@@ -128,7 +127,6 @@ sealed interface DocField {
         override val fieldName: String,
         override val nullable: Nullable,
         override val required: Boolean,
-        @Serializable(with = DocTypeNameSerializer::class)
         val option: DocType.Name,
     ) : DocField {
         override val originFieldType = FieldTypeRaw.Table

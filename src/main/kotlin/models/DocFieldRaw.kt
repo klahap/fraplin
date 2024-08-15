@@ -138,7 +138,6 @@ interface DocFieldRaw {
 
     @Serializable
     data class Common(
-        @Serializable(with = DocTypeNameSerializer::class)
         @SerialName("parent") override val parent: DocType.Name,
         @SerialName("fieldname") override val fieldName: String,
         @SerialName("fieldtype") override val fieldType: FieldTypeRaw,
@@ -149,7 +148,6 @@ interface DocFieldRaw {
 
     @Serializable
     data class Custom(
-        @Serializable(with = DocTypeNameSerializer::class)
         @SerialName("dt") override val parent: DocType.Name,
         @SerialName("fieldname") override val fieldName: String,
         @SerialName("fieldtype") override val fieldType: FieldTypeRaw,

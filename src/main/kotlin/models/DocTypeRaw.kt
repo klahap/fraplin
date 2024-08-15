@@ -8,7 +8,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class DocTypeRaw(
-    @Serializable(with = DocTypeNameSerializer::class)
     @SerialName("name") val name: DocType.Name,
     @Serializable(with = BooleanAsIntSerializer::class)
     @SerialName("issingle") val isSingle: Boolean = false,

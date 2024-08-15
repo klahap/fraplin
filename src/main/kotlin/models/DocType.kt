@@ -21,6 +21,7 @@ sealed interface DocType {
     }
 
     @JvmInline
+    @Serializable(with = DocTypeNameSerializer::class)
     value class Name(val value: String) : Comparable<Name> {
         override fun compareTo(other: Name): Int = value.compareTo(other.value)
         override fun toString(): String = value
@@ -28,7 +29,7 @@ sealed interface DocType {
 
     @Serializable
     data class Base(
-        @Serializable(with = DocTypeNameSerializer::class) override val docTypeName: Name,
+        override val docTypeName: Name,
         val docTypeType: Type,
         override val fields: List<DocField>,
     ) : Full {
@@ -37,7 +38,7 @@ sealed interface DocType {
 
     @Serializable
     data class Virtual(
-        @Serializable(with = DocTypeNameSerializer::class) override val docTypeName: Name,
+        override val docTypeName: Name,
         override val fields: List<DocField>,
     ) : Full {
         override fun toDummy() = Dummy(docTypeName = docTypeName)
@@ -45,7 +46,7 @@ sealed interface DocType {
 
     @Serializable
     data class Dummy(
-        @Serializable(with = DocTypeNameSerializer::class) override val docTypeName: Name,
+        override val docTypeName: Name,
     ) : DocType
 
     enum class Type(val creatable: Boolean) {
