@@ -1,9 +1,6 @@
 package io.github.klahap.fraplin.services
 
-import io.github.klahap.fraplin.models.DocField
-import io.github.klahap.fraplin.models.DocType
-import io.github.klahap.fraplin.models.DocTypeInfo
-import io.github.klahap.fraplin.models.FraplinSpec
+import io.github.klahap.fraplin.models.*
 import io.github.klahap.fraplin.models.config.FraplinInputConfig
 import io.github.klahap.fraplin.models.config.FraplinSourceConfig
 import okhttp3.OkHttpClient
@@ -16,11 +13,12 @@ class FraplinSpecService(
         val docTypeInfo = config.docTypes + setOf(DocTypeInfo(name = "User"))
         val docTypeNames = docTypeInfo.map { it.docTypeName }.toSet()
 
-        val allDocTypes = when (config.source) {
+        val schema = when (config.source) {
             is FraplinSourceConfig.Cloud -> config.source.getFrappeSite().getDocTypes(docTypeInfo)
             is FraplinSourceConfig.Site -> config.source.getFrappeSite().getDocTypes(docTypeInfo)
             is FraplinSourceConfig.Repos -> frappeGitRepoService.getAll(config.source.repos, docTypeInfo)
-        }.toList().associateBy { it.docTypeName }
+        }
+        val allDocTypes = schema.docTypes.associateBy { it.docTypeName }
 
         if (!allDocTypes.keys.containsAll(docTypeNames))
             throw Exception("doc types not found: ${docTypeNames - allDocTypes.keys}")
@@ -46,7 +44,8 @@ class FraplinSpecService(
         return FraplinSpec(
             docTypes = docTypesGen.filterIsInstance<DocType.Base>().sortedBy { it.docTypeName },
             virtualDocTypes = docTypesGen.filterIsInstance<DocType.Virtual>().sortedBy { it.docTypeName },
-            dummyDocTypes = dummyDocTypes.sortedBy { it.docTypeName }
+            dummyDocTypes = dummyDocTypes.sortedBy { it.docTypeName },
+            whiteListFunctions = schema.whiteListFunctions.sortedBy { it.name },
         )
     }
 

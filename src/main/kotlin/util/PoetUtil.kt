@@ -120,6 +120,11 @@ fun objectBuilder(
     block: TypeSpec.Builder.() -> Unit,
 ) = TypeSpec.objectBuilder(name).apply(block).build()
 
+fun interfaceBuilder(
+    name: String,
+    block: TypeSpec.Builder.() -> Unit,
+) = TypeSpec.interfaceBuilder(name).apply(block).build()
+
 fun TypeSpec.Builder.dataObject(
     name: String,
     block: TypeSpec.Builder.() -> Unit,
@@ -137,6 +142,11 @@ fun TypeSpec.Builder.addObject(
     name: String,
     block: TypeSpec.Builder.() -> Unit,
 ) = addType(objectBuilder(name, block))
+
+fun TypeSpec.Builder.addInterface(
+    name: String,
+    block: TypeSpec.Builder.() -> Unit,
+) = addType(interfaceBuilder(name, block))
 
 fun TypeSpec.Builder.addEnumConstant(
     name: String,

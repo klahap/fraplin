@@ -25,7 +25,7 @@ class FrappeSiteService(
         }.build()
     )
 
-    suspend fun getDocTypes(additionalInfo: Set<DocTypeInfo>): Collection<DocType.Full> =
+    suspend fun getDocTypes(additionalInfo: Set<DocTypeInfo>): FrappeSchema =
         coroutineScope {
             withContext(Dispatchers.IO) {
                 val docTypes = async {
@@ -44,10 +44,10 @@ class FrappeSiteService(
                         addQueryParameter("fields", getFilterList<DocFieldRaw.Custom>())
                     }.map { json.decodeFromJsonElement<DocFieldRaw.Custom>(it) }
                 }
-                DocTypeDataRaw(
+                FrappeSchema.Collector(
                     docTypes = docTypes.await(),
                     docFields = docFields.await() + docCustomFields.await()
-                ).merge(additionalInfo = additionalInfo)
+                ).collect(additionalInfo = additionalInfo)
             }
         }
 

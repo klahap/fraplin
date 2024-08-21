@@ -1,17 +1,25 @@
 package io.github.klahap.fraplin.models.config
 
+import io.github.klahap.fraplin.util.PathSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.nio.file.Path
 
 
+@Serializable
 sealed interface GitRepo {
     val appName: String
+    val addWhiteListedFunctions: Boolean
 
+    @Serializable
+    @SerialName("github")
     data class GitHub(
         val owner: String,
         val repo: String,
         val version: String? = null,
         val creds: Credentials? = null,
         override val appName: String = repo,
+        override val addWhiteListedFunctions: Boolean = ADD_WHITELISTED_FUNCTIONS_DEFAULT,
     ) : GitRepo {
         val cloneUrl
             get(): String {
@@ -20,6 +28,7 @@ sealed interface GitRepo {
             }
         val url get() = "https://github.com/$owner/$repo.git"
 
+        @Serializable
         data class Credentials(
             val username: String,
             val token: String,
@@ -42,6 +51,7 @@ sealed interface GitRepo {
             var version: String? = null,
             private var creds: Credentials? = null,
             var appName: String? = null,
+            var addWhiteListedFunctions: Boolean = ADD_WHITELISTED_FUNCTIONS_DEFAULT,
         ) {
             fun creds(block: Credentials.Builder.() -> Unit) {
                 creds = Credentials.Builder().apply(block).build()
@@ -52,24 +62,36 @@ sealed interface GitRepo {
                 repo = repo ?: throw Exception("no repo for github repo defined"),
                 version = version,
                 creds = creds,
-                appName = appName ?: repo!!
+                appName = appName ?: repo!!,
+                addWhiteListedFunctions = addWhiteListedFunctions,
             )
         }
     }
 
 
+    @Serializable
+    @SerialName("local")
     data class Local(
-        val path: Path,
+        @Serializable(PathSerializer::class) val path: Path,
         override val appName: String,
+        override val addWhiteListedFunctions: Boolean = ADD_WHITELISTED_FUNCTIONS_DEFAULT,
     ) : GitRepo {
+        val appPath: Path get() = path.resolve(appName)
+
         data class Builder(
             var path: Path? = null,
             var appName: String? = null,
+            var addWhiteListedFunctions: Boolean = ADD_WHITELISTED_FUNCTIONS_DEFAULT,
         ) {
             fun build() = Local(
                 path = path ?: throw Exception("no path for local git repo defined"),
                 appName = appName ?: throw Exception("no app-name for local git repo defined"),
+                addWhiteListedFunctions = addWhiteListedFunctions,
             )
         }
+    }
+
+    companion object {
+        private const val ADD_WHITELISTED_FUNCTIONS_DEFAULT = false
     }
 }

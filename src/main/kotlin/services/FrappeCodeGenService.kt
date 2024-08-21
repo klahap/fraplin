@@ -1,14 +1,12 @@
 package io.github.klahap.fraplin.services
 
-import io.github.klahap.fraplin.models.CodeGenContext
-import io.github.klahap.fraplin.models.DocField
+import io.github.klahap.fraplin.models.*
 import io.github.klahap.fraplin.models.DocType.Companion.addDummyCode
 import io.github.klahap.fraplin.models.DocType.Companion.addHelperCode
 import io.github.klahap.fraplin.models.DocType.Companion.buildFile
 import io.github.klahap.fraplin.models.DocType.Companion.toOpenApiComponents
 import io.github.klahap.fraplin.models.DocType.Companion.toOpenApiPaths
-import io.github.klahap.fraplin.models.FraplinSpec
-import io.github.klahap.fraplin.models.OpenApiGenContext
+import io.github.klahap.fraplin.models.WhiteListFunction.Companion.addWhiteListFunction
 import io.github.klahap.fraplin.models.config.FraplinOpenApiConfig
 import io.github.klahap.fraplin.models.config.FraplinOutputConfig
 import io.github.klahap.fraplin.models.openapi.OpenApiSpec
@@ -65,6 +63,14 @@ class FrappeCodeGenService(
         ) {
             spec.dummyDocTypes.forEach { docType -> docType.addDummyCode(context) }
         }
+
+        if (spec.whiteListFunctions.isNotEmpty())
+            fileBuilder(
+                packageName = context.packageName,
+                filePath = context.outputPath.resolve("WhiteListFun.kt"),
+            ) {
+                addWhiteListFunction(packageName = context.packageName, functions = spec.whiteListFunctions)
+            }
 
         if (config.openapi != null)
             generateOpenApiSpec(config.openapi, spec = spec)
