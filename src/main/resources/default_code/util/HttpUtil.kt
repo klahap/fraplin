@@ -34,6 +34,12 @@ inline fun <reified T> Response.getJsonIfSuccessfulOrThrow(json: Json = Json): T
     return json.decodeFromString(body!!.string())
 }
 
+inline fun <reified T> Response.getJsonIfSuccessfulOrNull(json: Json = Json): T? = try {
+    getJsonIfSuccessfulOrThrow<T>(json)
+} catch (_: Throwable) {
+    null
+}
+
 fun Response.throwIfError() {
     if (isSuccessful) return
     val msg = message.takeIf { it.isNotBlank() } ?: body?.string()
@@ -54,3 +60,5 @@ fun Request.newBuilder(block: Request.Builder.(request: Request) -> Unit) =
 
 fun Headers.newBuilder(block: Headers.Builder.() -> Unit) = newBuilder().apply(block).build()
 fun requestBuilder(block: Request.Builder.() -> Unit) = Request.Builder().apply(block).build()
+
+suspend fun headerBuilder(block: suspend Headers.Builder.() -> Unit) = Headers.Builder().apply { block() }.build()

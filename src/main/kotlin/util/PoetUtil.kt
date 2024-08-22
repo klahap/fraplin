@@ -206,6 +206,11 @@ fun FileSpec.Builder.addInterface(
     block: TypeSpec.Builder.() -> Unit,
 ) = addType(TypeSpec.interfaceBuilder(name).apply(block).build())
 
+fun FileSpec.Builder.addObject(
+    name: String,
+    block: TypeSpec.Builder.() -> Unit,
+) = addType(TypeSpec.objectBuilder(name).apply(block).build())
+
 fun FileSpec.Builder.addEnum(
     name: String,
     block: TypeSpec.Builder.() -> Unit,

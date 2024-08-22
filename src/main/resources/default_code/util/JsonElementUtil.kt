@@ -120,3 +120,49 @@ interface JsonElementType<T : Any> {
         }
     }
 }
+
+
+interface JsonElementField<T> {
+    val name: kotlin.String
+    fun toEntry(value: T): Pair<kotlin.String, JsonElement>
+
+    interface String : JsonElementField<kotlin.String> {
+        override fun toEntry(value: kotlin.String) = name to JsonElementType.String.toJson(value)
+    }
+
+    interface StringNullable : JsonElementField<kotlin.String?> {
+        override fun toEntry(value: kotlin.String?) = name to JsonElementType.String.toJson(value)
+    }
+
+    interface Boolean : JsonElementField<kotlin.Boolean> {
+        override fun toEntry(value: kotlin.Boolean) = name to JsonElementType.Boolean.toJson(value)
+    }
+
+    interface BooleanNullable : JsonElementField<kotlin.Boolean?> {
+        override fun toEntry(value: kotlin.Boolean?) = name to JsonElementType.Boolean.toJson(value)
+    }
+
+    interface Long : JsonElementField<kotlin.Long> {
+        override fun toEntry(value: kotlin.Long) = name to JsonElementType.Long.toJson(value)
+    }
+
+    interface LongNullable : JsonElementField<kotlin.Long?> {
+        override fun toEntry(value: kotlin.Long?) = name to JsonElementType.Long.toJson(value)
+    }
+
+    interface Double : JsonElementField<kotlin.Double> {
+        override fun toEntry(value: kotlin.Double) = name to JsonElementType.Double.toJson(value)
+    }
+
+    interface DoubleNullable : JsonElementField<kotlin.Double?> {
+        override fun toEntry(value: kotlin.Double?) = name to JsonElementType.Double.toJson(value)
+    }
+
+    interface Any : JsonElementField<JsonElement> {
+        override fun toEntry(value: JsonElement) = name to value
+    }
+
+    interface AnyNullable : JsonElementField<JsonElement?> {
+        override fun toEntry(value: JsonElement?) = name to (value ?: JsonNull)
+    }
+}

@@ -64,13 +64,12 @@ class FrappeCodeGenService(
             spec.dummyDocTypes.forEach { docType -> docType.addDummyCode(context) }
         }
 
-        if (spec.whiteListFunctions.isNotEmpty())
-            fileBuilder(
-                packageName = context.packageName,
-                filePath = context.outputPath.resolve("WhiteListFun.kt"),
-            ) {
-                addWhiteListFunction(packageName = context.packageName, functions = spec.whiteListFunctions)
-            }
+        fileBuilder(
+            packageName = context.packageName,
+            filePath = context.outputPath.resolve("WhiteListFun.kt"),
+        ) {
+            addWhiteListFunction(packageName = context.packageName, functions = spec.whiteListFunctions)
+        }
 
         if (config.openapi != null)
             generateOpenApiSpec(config.openapi, spec = spec)

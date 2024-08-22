@@ -48,6 +48,25 @@ class FrappeGitRepoService {
         return whiteListedRegex.findAll(filePath.readText()).map { match ->
             val name = match.groups["name"]!!.value
             val options = match.groups["options"]!!.value
+            val args = match.groups["args"]!!.value
+                .replace(Regex("\\[.*]"), "")
+                .split(",")
+                .filter { it.isNotBlank() }
+                .mapNotNull { raw ->
+                    val parts = raw.trim().split(':').map { it.trim() }
+                    if (parts.first().startsWith("*")) return@mapNotNull null
+                    when (parts.size) {
+                        1 -> parts.single() to null
+                        2 -> parts.first() to parts.last()
+                        else -> throw Exception("unexpected function argument: '$raw'")
+                    }
+                }
+                .map {
+                    WhiteListFunction.Arg(
+                        name = it.first,
+                        type = WhiteListFunction.Arg.Type.fromPythonType(it.second)
+                    )
+                }
             val isPublic = whiteListedIsPublicRegex.find(options)?.groups?.get("value")?.value?.let {
                 when (it) {
                     "False" -> false
@@ -57,6 +76,7 @@ class FrappeGitRepoService {
             } ?: false
             WhiteListFunction(
                 name = "$prefix.$name",
+                args = args,
                 isPublic = isPublic
             )
         }.toSet()
@@ -116,7 +136,7 @@ class FrappeGitRepoService {
 
     companion object {
         private val whiteListedRegex =
-            Regex("\\s*@(?:frappe\\.)?whitelist\\((?<options>.*)\\)\\s*\\n\\s*def\\s+(?<name>\\w+)\\(")
+            Regex("\\s*@(?:frappe\\.)?whitelist\\((?<options>.*)\\)\\s*\\n\\s*def\\s+(?<name>\\w+)\\((?<args>[^)]*)\\)")
         private val whiteListedIsPublicRegex =
             Regex("allow_guest\\s*=\\s*(?<value>\\w+)")
 

@@ -1,5 +1,6 @@
 package default_code
 
+import default_code.util.JsonElementField
 import kotlinx.serialization.json.JsonElement
 import kotlin.reflect.KClass
 
@@ -42,5 +43,21 @@ interface FrappeEnum<T> where T : Enum<T>, T : FrappeEnum<T> {
                 ?.firstOrNull { it.origin == origin }
                 ?: throw Exception("origin value '$origin' not exists in ${clazz.simpleName}")
         }
+    }
+}
+
+sealed interface IWhiteListFun {
+    val name: String
+
+    sealed interface Args : IWhiteListFun {
+        interface Without : Args
+        interface With<A : JsonElementField<*>> : Args {
+            public fun getArgs(block: A.() -> Pair<String, JsonElement>): Map<String, JsonElement>
+        }
+    }
+
+    sealed interface Scope : IWhiteListFun {
+        interface Private : Scope
+        interface Public : Scope
     }
 }

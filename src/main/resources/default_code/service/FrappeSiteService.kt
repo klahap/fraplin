@@ -2,6 +2,7 @@ package default_code.service
 
 import default_code.DocType
 import default_code.DocTypeAbility
+import default_code.IWhiteListFun
 import default_code.model.*
 import default_code.model.filter.FrappeFilterString
 import default_code.model.filter.FrappeFilterStringSet
@@ -39,6 +40,48 @@ open class FrappeSiteService(
             add("Authorization", "token $userApiToken")
         }
     )
+
+    suspend fun <T, A, R> callWhiteListFun(
+        fn: T,
+        additionalArgs: Map<String, JsonElement>,
+        argBuilder: A.() -> Pair<String, JsonElement>,
+        responseHandler: Response.() -> R,
+    ): R where
+            A : JsonElementField<*>,
+            T : IWhiteListFun.Args.With<A>,
+            T : IWhiteListFun.Scope = _callWhiteListFun(
+        fn = fn,
+        args = fn.getArgs(argBuilder) + additionalArgs,
+        responseHandler = responseHandler
+    )
+
+    suspend fun <T, R> callWhiteListFun(
+        fn: T,
+        additionalArgs: Map<String, JsonElement>,
+        responseHandler: Response.() -> R,
+    ): R where
+            T : IWhiteListFun.Args.Without,
+            T : IWhiteListFun.Scope = _callWhiteListFun(
+        fn = fn,
+        args = additionalArgs,
+        responseHandler = responseHandler
+    )
+
+    private suspend fun <T, R> _callWhiteListFun(
+        fn: T,
+        args: Map<String, JsonElement>,
+        responseHandler: Response.() -> R,
+    ): R where T : IWhiteListFun.Args, T : IWhiteListFun.Scope {
+        return requestBuilder {
+            post(JsonObject(args).toRequestBody())
+            url(getFunUrl(fn))
+        }.run {
+            when (fn as IWhiteListFun.Scope) {
+                is IWhiteListFun.Scope.Private -> send(responseHandler = responseHandler)
+                is IWhiteListFun.Scope.Public -> send(responseHandler = responseHandler)
+            }
+        }
+    }
 
     private data class ChildObjectKey(
         val parent: FrappeDocTypeObjectName,
@@ -161,13 +204,13 @@ open class FrappeSiteService(
         docType: KClass<T>,
         data: JsonElement,
     ): T where T : DocType, T : DocTypeAbility.Create {
-        return Request.Builder()
-            .post(data.toRequestBody())
-            .url(getDocTypeUrl(docType))
-            .send {
-                getJsonIfSuccessfulOrThrow<JsonObject>(json)["data"]!!
-                    .let { json.decodeFromJsonElement(docType.toSerializer(), it) }
-            }
+        return requestBuilder {
+            post(data.toRequestBody())
+            url(getDocTypeUrl(docType))
+        }.send {
+            getJsonIfSuccessfulOrThrow<JsonObject>(json)["data"]!!
+                .let { json.decodeFromJsonElement(docType.toSerializer(), it) }
+        }
     }
 
     suspend fun <T> update(
@@ -175,22 +218,23 @@ open class FrappeSiteService(
         name: String,
         data: JsonElement,
     ): T where T : DocType, T : DocTypeAbility.Update {
-        return Request.Builder()
-            .put(data.toRequestBody())
-            .url(getDocTypeUrl(docType, name = name))
-            .send {
-                getJsonIfSuccessfulOrThrow<JsonObject>(json)["data"]!!
-                    .let { json.decodeFromJsonElement(docType.toSerializer(), it) }
-            }
+        return requestBuilder {
+            put(data.toRequestBody())
+            url(getDocTypeUrl(docType, name = name))
+        }.send {
+            getJsonIfSuccessfulOrThrow<JsonObject>(json)["data"]!!
+                .let { json.decodeFromJsonElement(docType.toSerializer(), it) }
+        }
     }
 
     suspend fun <T> delete(
         docType: KClass<T>,
         name: String,
     ) where T : DocType, T : DocTypeAbility.Delete {
-        return Request.Builder().delete()
-            .url(getDocTypeUrl(docType, name = name))
-            .send { throwIfError() }
+        return requestBuilder {
+            delete()
+            url(getDocTypeUrl(docType, name = name))
+        }.send { throwIfError() }
     }
 
     suspend inline fun <reified T> delete(
@@ -206,14 +250,15 @@ open class FrappeSiteService(
         docType: KClass<T>,
         name: String?,
     ): T where T : DocType {
-        return Request.Builder().get()
-            .url(getDocTypeUrl(docType, name = name))
-            .send {
-                json.decodeFromJsonElement(
-                    deserializer = docType.toSerializer(),
-                    element = getJsonIfSuccessfulOrThrow<JsonObject>(json)["data"]!!,
-                )
-            }
+        return requestBuilder {
+            get()
+            url(getDocTypeUrl(docType, name = name))
+        }.send {
+            json.decodeFromJsonElement(
+                deserializer = docType.toSerializer(),
+                element = getJsonIfSuccessfulOrThrow<JsonObject>(json)["data"]!!,
+            )
+        }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -266,14 +311,15 @@ open class FrappeSiteService(
         }
         return flow {
             for (idx in generateSequence(0) { it + 1 }) {
-                val objects = Request.Builder().get()
-                    .url(url.newBuilder {
+                val objects = requestBuilder {
+                    get()
+                    url(url.newBuilder {
                         addQueryParameter("limit_start", (idx * batchSize).toString())
                         addQueryParameter("limit", batchSize.toString())
                     })
-                    .send {
-                        getJsonIfSuccessfulOrThrow<JsonObject>(json)["data"]!!.jsonArray.map { it.jsonObject }
-                    }
+                }.send {
+                    getJsonIfSuccessfulOrThrow<JsonObject>(json)["data"]!!.jsonArray.map { it.jsonObject }
+                }
                 emit(objects)
                 if (objects.size != batchSize) break
             }
@@ -289,6 +335,10 @@ open class FrappeSiteService(
             if (name != null)
                 addPathSegment(name)
         }
+
+    private fun getFunUrl(fn: IWhiteListFun) = baseUrl.newBuilder {
+        addPathSegment("api/method/${fn.name}")
+    }
 
 
     suspend fun <D : DocType.Single> uploadFile(
@@ -327,11 +377,10 @@ open class FrappeSiteService(
             .addFormDataPart("optimize", if (optimize) "1" else "0")
             .build()
 
-        Request.Builder()
-            .post(body)
-            .url("$baseUrl/api/method/upload_file")
-            .send {
-            }
+        requestBuilder {
+            post(body)
+            url("$baseUrl/api/method/upload_file")
+        }.send()
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -339,15 +388,19 @@ open class FrappeSiteService(
         json.serializersModule.serializer(createType()) as KSerializer<T>
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    protected suspend fun <T> Request.Builder.send(
-        headerBuilder: Headers.Builder.() -> Unit = {},
+    protected suspend fun <T> Request.send(
+        withAuthorization: Boolean = true,
         responseHandler: Response.() -> T,
     ): T {
-        val headers = Headers.Builder()
-            .apply { additionalHeaderBuilder() }
-            .apply { headerBuilder() }
-            .build()
-        val request = this.headers(headers).build()
+        val headersToAdd = headerBuilder {
+            if (withAuthorization) additionalHeaderBuilder()
+            addAll(this@send.headers)
+        }
+        val request = newBuilder { headers(headersToAdd) }
         return baseClient.newCall(request).executeAsync().use { responseHandler(it) }
     }
+
+    protected suspend fun Request.send(
+        withAuthorization: Boolean = true,
+    ) = send(withAuthorization = withAuthorization) {}
 }
