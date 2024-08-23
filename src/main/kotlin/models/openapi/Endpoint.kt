@@ -6,12 +6,22 @@ data class Endpoint(
     val tags: Set<String>,
     val operationId: String,
     val parameters: List<Parameter>,
+    val body: Schema?,
     val response: Response,
 ) {
     fun toJson() = method.name.lowercase() to jsonOf(
         tags.takeIf { it.isNotEmpty() }?.let { t -> "tags" to jsonOf(t.map { jsonOf(it) }) },
         "operationId" to jsonOf(operationId),
         parameters.takeIf { it.isNotEmpty() }?.let { p -> "parameters" to jsonOf(p.map { it.toJson() }) },
+        body?.let { schema ->
+            "requestBody" to jsonOf(
+                "content" to jsonOf(
+                    "application/json" to jsonOf(
+                        "schema" to schema.toJson()
+                    )
+                )
+            )
+        },
         "responses" to jsonOf(
             response.toJson()
         ),

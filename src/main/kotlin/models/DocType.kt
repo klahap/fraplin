@@ -472,14 +472,16 @@ sealed interface DocType {
 
         fun Virtual.toOpenApiPaths(context: OpenApiGenContext): Collection<Path> {
             val pathPrefix = context.pathPrefix + docTypeName.value.toHyphenated()
+            val component = Component.Ref(getBaseSchemaName(context))
             val getAllEndpoint = Endpoint(
                 method = Endpoint.Method.GET,
                 tags = context.tags,
                 operationId = "getAll$prettyName",
                 parameters = emptyList(),
+                body = null,
                 response = Endpoint.Response(
                     description = "get all $prettyName",
-                    schema = Schema.ArrayRef(Component.Ref(getBaseSchemaName(context))),
+                    schema = Schema.ArrayRef(component),
                 )
             )
             val insertEndpoint = Endpoint(
@@ -487,9 +489,10 @@ sealed interface DocType {
                 tags = context.tags,
                 operationId = "insert$prettyName",
                 parameters = emptyList(),
+                body = Schema.Ref(component),
                 response = Endpoint.Response(
                     description = "insert $prettyName by name",
-                    schema = Schema.Ref(Component.Ref(getBaseSchemaName(context))),
+                    schema = Schema.Ref(component),
                 )
             )
             val getEndpoint = Endpoint(
@@ -504,9 +507,10 @@ sealed interface DocType {
                         schema = Schema.Primitive(type = "string")
                     )
                 ),
+                body = null,
                 response = Endpoint.Response(
                     description = "get $prettyName by name",
-                    schema = Schema.Ref(Component.Ref(getBaseSchemaName(context))),
+                    schema = Schema.Ref(component),
                 )
             )
             val deleteEndpoint = Endpoint(
@@ -521,6 +525,7 @@ sealed interface DocType {
                         schema = Schema.Primitive(type = "string")
                     )
                 ),
+                body = null,
                 response = Endpoint.Response(
                     description = "delete $prettyName by name",
                     schema = null,
@@ -538,9 +543,10 @@ sealed interface DocType {
                         schema = Schema.Primitive(type = "string")
                     )
                 ),
+                body = Schema.Ref(component),
                 response = Endpoint.Response(
                     description = "update $prettyName by name",
-                    schema = Schema.Ref(Component.Ref(getBaseSchemaName(context))),
+                    schema = Schema.Ref(component),
                 )
             )
             return listOf(
