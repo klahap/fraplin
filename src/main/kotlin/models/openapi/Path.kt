@@ -2,6 +2,7 @@ package io.github.klahap.fraplin.models.openapi
 
 
 data class Path(
+    val method: Method,
     val route: String,
     val tags: Set<String>,
     val operationId: String,
@@ -9,7 +10,7 @@ data class Path(
     val response: Response,
 ) {
     fun toJson() = route to jsonOf(
-        "get" to jsonOf(
+        method.name.lowercase() to jsonOf(
             tags.takeIf { it.isNotEmpty() }?.let { t -> "tags" to jsonOf(t.map { jsonOf(it) }) },
             "operationId" to jsonOf(operationId),
             parameters.takeIf { it.isNotEmpty() }?.let { p -> "parameters" to jsonOf(p.map { it.toJson() }) },
@@ -18,6 +19,8 @@ data class Path(
             ),
         )
     )
+
+    enum class Method {GET, POST, PUT, DELETE}
 
     data class Parameter(
         val name: String,
@@ -42,15 +45,17 @@ data class Path(
     data class Response(
         val status: Int = 200,
         val description: String,
-        val schema: Schema,
+        val schema: Schema?,
     ) {
         fun toJson() = "$status" to jsonOf(
             "description" to jsonOf(description),
-            "content" to jsonOf(
-                "application/json" to jsonOf(
-                    "schema" to schema.toJson()
+            schema?.let {
+                "content" to jsonOf(
+                    "application/json" to jsonOf(
+                        "schema" to it.toJson()
+                    )
                 )
-            )
+            }
         )
     }
 }

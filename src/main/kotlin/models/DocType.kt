@@ -473,16 +473,18 @@ sealed interface DocType {
             val pathPrefix = context.pathPrefix + docTypeName.value.toHyphenated()
             val getAllPath = Path(
                 route = pathPrefix,
+                method = Path.Method.GET,
                 tags = context.tags,
                 operationId = "getAll$prettyName",
                 parameters = emptyList(),
                 response = Path.Response(
                     description = "get all $prettyName",
-                    schema = Schema.ArrayRef(Component.Ref(getBaseSchemaName(context)))
+                    schema = Schema.ArrayRef(Component.Ref(getBaseSchemaName(context))),
                 )
             )
             val getPath = Path(
                 route = "$pathPrefix/{name}",
+                method = Path.Method.GET,
                 tags = context.tags,
                 operationId = "get$prettyName",
                 parameters = listOf(
@@ -495,10 +497,57 @@ sealed interface DocType {
                 ),
                 response = Path.Response(
                     description = "get $prettyName by name",
-                    schema = Schema.Ref(Component.Ref(getBaseSchemaName(context)))
+                    schema = Schema.Ref(Component.Ref(getBaseSchemaName(context))),
                 )
             )
-            return listOf(getAllPath, getPath)
+            val deletePath = Path(
+                route = "$pathPrefix/{name}",
+                method = Path.Method.DELETE,
+                tags = context.tags,
+                operationId = "delete$prettyName",
+                parameters = listOf(
+                    Path.Parameter(
+                        name = "name",
+                        source = Path.Parameter.Source.PATH,
+                        required = true,
+                        schema = Schema.Primitive(type = "string")
+                    )
+                ),
+                response = Path.Response(
+                    description = "delete $prettyName by name",
+                    schema = null,
+                )
+            )
+            val updatePath = Path(
+                route = "$pathPrefix/{name}",
+                method = Path.Method.PUT,
+                tags = context.tags,
+                operationId = "update$prettyName",
+                parameters = listOf(
+                    Path.Parameter(
+                        name = "name",
+                        source = Path.Parameter.Source.PATH,
+                        required = true,
+                        schema = Schema.Primitive(type = "string")
+                    )
+                ),
+                response = Path.Response(
+                    description = "update $prettyName by name",
+                    schema = Schema.Ref(Component.Ref(getBaseSchemaName(context))),
+                )
+            )
+            val insertPath = Path(
+                route = pathPrefix,
+                method = Path.Method.POST,
+                tags = context.tags,
+                operationId = "insert$prettyName",
+                parameters = emptyList(),
+                response = Path.Response(
+                    description = "insert $prettyName by name",
+                    schema = Schema.Ref(Component.Ref(getBaseSchemaName(context))),
+                )
+            )
+            return listOf(getAllPath, getPath, deletePath, updatePath, insertPath)
         }
     }
 }

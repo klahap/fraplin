@@ -52,8 +52,8 @@ data class OpenApiSpec(
             ).flatten().mapNotNull {
                 when (it) {
                     is Schema.ArrayRef -> it.value
-                    is Schema.Primitive -> null
                     is Schema.Ref -> it.value
+                    is Schema.Primitive, null -> null
                 }
             }.toSet()
             val actual = components.map { it.toRef() }.toSet()
