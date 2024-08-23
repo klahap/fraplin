@@ -46,8 +46,8 @@ data class OpenApiSpec(
 
         private fun check() {
             val required = sequenceOf(
-                paths.map { it.response.schema },
-                paths.flatMap { p -> p.parameters.map { it.schema } },
+                paths.flatMap { p -> p.endpoints.map { it.response.schema } },
+                paths.flatMap { p -> p.endpoints.flatMap { e -> e.parameters.map { it.schema } } },
                 components.filterIsInstance<Component.Object>().flatMap { c -> c.properties.map { it.schema } },
             ).flatten().mapNotNull {
                 when (it) {
