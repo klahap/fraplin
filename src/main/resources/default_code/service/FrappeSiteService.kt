@@ -41,8 +41,8 @@ open class FrappeSiteService(
 
     suspend fun <T, A, R> callWhiteListFun(
         fn: T,
-        additionalArgs: Map<String, JsonElement>,
-        argBuilder: A.() -> Pair<String, JsonElement>,
+        additionalArgs: Map<String, JsonElement> = emptyMap(),
+        argBuilder: A.() -> JsonElement,
         responseHandler: Response.() -> R,
     ): R where
             A : JsonElementField<*>,
@@ -55,7 +55,7 @@ open class FrappeSiteService(
 
     suspend fun <T, R> callWhiteListFun(
         fn: T,
-        additionalArgs: Map<String, JsonElement>,
+        additionalArgs: Map<String, JsonElement> = emptyMap(),
         responseHandler: Response.() -> R,
     ): R where
             T : IWhiteListFun.Args.Without,
@@ -349,8 +349,10 @@ open class FrappeSiteService(
         body = body,
         fileName = fileName,
         isPrivate = isPrivate,
-        docType = docType,
-        docName = docType.getDocTypeName().name,
+        link = object : FrappeLinkField<D> {
+            override val docType: KClass<D> = docType
+            override val value: String = docType.getDocTypeName().name
+        },
         fieldName = fieldName,
     )
 
@@ -358,16 +360,14 @@ open class FrappeSiteService(
         body: RequestBody,
         fileName: String,
         isPrivate: Boolean,
-        docType: KClass<D>,
-        docName: String,
+        link: FrappeLinkField<D>,
         fieldName: KProperty1<D, FrappeAttachField?>,
     ): FrappeUploadFileResponse = upload {
         setDefaultFileUploadArgs(
             body = body,
             fileName = fileName,
             isPrivate = isPrivate,
-            docType = docType,
-            docName = docName,
+            link = link,
             fieldName = fieldName,
         )
     }
@@ -388,8 +388,10 @@ open class FrappeSiteService(
         optimize = optimize,
         maxWidth = maxWidth,
         maxHeight = maxHeight,
-        docType = docType,
-        docName = docType.getDocTypeName().name,
+        link = object : FrappeLinkField<D> {
+            override val docType: KClass<D> = docType
+            override val value: String = docType.getDocTypeName().name
+        },
         fieldName = fieldName,
     )
 
@@ -400,16 +402,14 @@ open class FrappeSiteService(
         optimize: Boolean,
         maxWidth: Int? = null,
         maxHeight: Int? = null,
-        docType: KClass<D>,
-        docName: String,
+        link: FrappeLinkField<D>,
         fieldName: KProperty1<D, FrappeAttachField?>,
     ): FrappeUploadFileResponse = upload {
         setDefaultFileUploadArgs(
             body = body,
             fileName = fileName,
             isPrivate = isPrivate,
-            docType = docType,
-            docName = docName,
+            link = link,
             fieldName = fieldName,
         )
         addFormDataPart("optimize", if (optimize) "1" else "0")
@@ -454,15 +454,14 @@ open class FrappeSiteService(
             body: RequestBody,
             fileName: String,
             isPrivate: Boolean,
-            docType: KClass<D>,
-            docName: String,
+            link: FrappeLinkField<D>,
             fieldName: KProperty1<D, FrappeAttachField?>,
         ) {
             setType(MultipartBody.FORM)
             addFormDataPart("file", fileName, body)
             addFormDataPart("is_private", if (isPrivate) "1" else "0")
-            addFormDataPart("doctype", docType.getDocTypeName().name)
-            addFormDataPart("docname", docName)
+            addFormDataPart("doctype", link.docType.getDocTypeName().name)
+            addFormDataPart("docname", link.value)
             addFormDataPart("fieldname", fieldName.name)
         }
     }

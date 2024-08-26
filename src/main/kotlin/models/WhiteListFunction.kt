@@ -162,17 +162,14 @@ data class WhiteListFunction(
                                 addParameter(
                                     "block", LambdaTypeName.get(
                                         receiver = ClassName("", "Arg").parameterizedBy(STAR),
-                                        returnType = ClassName("kotlin", "Pair").parameterizedBy(
-                                            ClassName("kotlin", "String"),
-                                            ClassName("kotlinx.serialization.json", "JsonElement"),
-                                        ),
+                                        returnType = ClassName("kotlinx.serialization.json", "JsonElement"),
                                     )
                                 )
                                 if (fn.origin.hasArgs)
                                     addCode {
                                         add("return listOf(")
                                         fn.origin.args.forEach { arg ->
-                                            add("block(Arg.${arg.prettyName}),")
+                                            add("Arg.${arg.prettyName}.name to block(Arg.${arg.prettyName}),\n")
                                         }
                                         add(").toMap()")
                                     }

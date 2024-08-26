@@ -52,7 +52,7 @@ sealed interface IWhiteListFun {
     sealed interface Args : IWhiteListFun {
         interface Without : Args
         interface With<A : JsonElementField<*>> : Args {
-            public fun getArgs(block: A.() -> Pair<String, JsonElement>): Map<String, JsonElement>
+            public fun getArgs(block: A.() -> JsonElement): Map<String, JsonElement>
         }
     }
 
