@@ -55,6 +55,7 @@ object PathUtil {
             addFile("FrappeFilterSet.kt")
             addFile("FrappeOrderBy.kt")
             addFile("FrappeRequestOptions.kt")
+            addFile("FrappeUploadFileResponse.kt")
         }
         addPackage("model/filter") {
             addFile("FrappeFilterBoolean.kt")
