@@ -14,9 +14,7 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.*
 import kotlinx.serialization.serializer
 import okhttp3.*
-import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.coroutines.executeAsync
-import java.io.File
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.createType
@@ -342,45 +340,92 @@ open class FrappeSiteService(
 
 
     suspend fun <D : DocType.Single> uploadFile(
-        file: File,
+        body: RequestBody,
         fileName: String,
         isPrivate: Boolean,
-        optimize: Boolean,
         docType: KClass<D>,
         fieldName: KProperty1<D, FrappeAttachField?>,
-    ) = uploadFile(
-        file = file,
+    ): FrappeUploadFileResponse = uploadFile(
+        body = body,
         fileName = fileName,
         isPrivate = isPrivate,
-        optimize = optimize,
         docType = docType,
         docName = docType.getDocTypeName().name,
         fieldName = fieldName,
     )
 
     suspend fun <D : DocType> uploadFile(
-        file: File,
+        body: RequestBody,
         fileName: String,
         isPrivate: Boolean,
-        optimize: Boolean,
         docType: KClass<D>,
         docName: String,
         fieldName: KProperty1<D, FrappeAttachField?>,
-    ) {
-        val body = MultipartBody.Builder()
-            .addFormDataPart("file", fileName, file.asRequestBody())
-            .addFormDataPart("is_private", if (isPrivate) "1" else "0")
-            .addFormDataPart("folder", "Home")
-            .addFormDataPart("doctype", docType.getDocTypeName().name)
-            .addFormDataPart("docname", docName)
-            .addFormDataPart("fieldname", fieldName.name)
-            .addFormDataPart("optimize", if (optimize) "1" else "0")
-            .build()
+    ): FrappeUploadFileResponse = upload {
+        setDefaultFileUploadArgs(
+            body = body,
+            fileName = fileName,
+            isPrivate = isPrivate,
+            docType = docType,
+            docName = docName,
+            fieldName = fieldName,
+        )
+    }
 
-        requestBuilder {
-            post(body)
-            url("$baseUrl/api/method/upload_file")
-        }.send()
+    suspend fun <D : DocType.Single> uploadImage(
+        body: RequestBody,
+        fileName: String,
+        isPrivate: Boolean,
+        optimize: Boolean,
+        maxWidth: Int? = null,
+        maxHeight: Int? = null,
+        docType: KClass<D>,
+        fieldName: KProperty1<D, FrappeAttachField?>,
+    ): FrappeUploadFileResponse = uploadImage(
+        body = body,
+        fileName = fileName,
+        isPrivate = isPrivate,
+        optimize = optimize,
+        maxWidth = maxWidth,
+        maxHeight = maxHeight,
+        docType = docType,
+        docName = docType.getDocTypeName().name,
+        fieldName = fieldName,
+    )
+
+    suspend fun <D : DocType> uploadImage(
+        body: RequestBody,
+        fileName: String,
+        isPrivate: Boolean,
+        optimize: Boolean,
+        maxWidth: Int? = null,
+        maxHeight: Int? = null,
+        docType: KClass<D>,
+        docName: String,
+        fieldName: KProperty1<D, FrappeAttachField?>,
+    ): FrappeUploadFileResponse = upload {
+        setDefaultFileUploadArgs(
+            body = body,
+            fileName = fileName,
+            isPrivate = isPrivate,
+            docType = docType,
+            docName = docName,
+            fieldName = fieldName,
+        )
+        addFormDataPart("optimize", if (optimize) "1" else "0")
+        if (maxWidth != null)
+            addFormDataPart("max_width", maxWidth.toString())
+        if (maxHeight != null)
+            addFormDataPart("max_height", maxHeight.toString())
+    }
+
+    private suspend fun upload(block: MultipartBody.Builder.() -> Unit): FrappeUploadFileResponse = requestBuilder {
+        postMultipartBody { block() }
+        url("$baseUrl/api/method/upload_file")
+    }.send {
+        getJsonIfSuccessfulOrThrow<JsonObject>(json = json)["message"]!!.let {
+            json.decodeFromJsonElement<FrappeUploadFileResponse>(it)
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -403,4 +448,22 @@ open class FrappeSiteService(
     protected suspend fun Request.send(
         withAuthorization: Boolean = true,
     ) = send(withAuthorization = withAuthorization) {}
+
+    companion object {
+        private fun <D : DocType> MultipartBody.Builder.setDefaultFileUploadArgs(
+            body: RequestBody,
+            fileName: String,
+            isPrivate: Boolean,
+            docType: KClass<D>,
+            docName: String,
+            fieldName: KProperty1<D, FrappeAttachField?>,
+        ) {
+            setType(MultipartBody.FORM)
+            addFormDataPart("file", fileName, body)
+            addFormDataPart("is_private", if (isPrivate) "1" else "0")
+            addFormDataPart("doctype", docType.getDocTypeName().name)
+            addFormDataPart("docname", docName)
+            addFormDataPart("fieldname", fieldName.name)
+        }
+    }
 }
