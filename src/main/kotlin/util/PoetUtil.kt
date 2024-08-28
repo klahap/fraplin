@@ -1,18 +1,10 @@
 package io.github.klahap.fraplin.util
 
 import com.squareup.kotlinpoet.*
-import java.nio.file.Path
-import kotlin.io.path.name
-import kotlin.io.path.writeText
 import kotlin.reflect.KClass
 
-fun fileBuilder(
-    packageName: String,
-    filePath: Path,
-    block: FileSpec.Builder.() -> Unit,
-) = FileSpec.builder(packageName, filePath.name).apply(block).build().let {
-    filePath.writeText(it.toString())
-}
+fun buildFile(packageName: String, name: String, block: FileSpec.Builder.() -> Unit) =
+    FileSpec.builder(packageName = packageName, fileName = name).apply(block).build()
 
 fun FileSpec.Builder.dataClass(
     name: String,

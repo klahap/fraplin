@@ -31,45 +31,43 @@ class FrappeCodeGenService(
             docTypes = (spec.docTypes + spec.virtualDocTypes + spec.dummyDocTypes).associateBy { it.docTypeName },
         )
 
-        context.outputPath.apply {
-            if (isDirectory())
-                @OptIn(ExperimentalPathApi::class) deleteRecursively()
-            createDirectories()
-            resolve("doctype").createDirectories()
-        }
+        val synchronizer = DirectorySynchronizer(context.outputPath)
 
         PathUtil.defaultCodeFiles.forEach {
-            context.outputPath.resolve(it.relativePath)
-                .apply { parent.createDirectories() }
-                .writeText(it.getContent(context.packageName))
-            println("created: ${it.relativePath}")
+            synchronizer.sync(
+                relativePath = it.relativePath,
+                content = it.getContent(context.packageName)
+            )
         }
 
         spec.docTypes.map {
-            it.buildFile(context)
-            println("created: ${it.relativePath}")
+            synchronizer.sync(
+                relativePath = it.relativePath,
+                content = it.buildFile(context),
+            )
         }
 
-        fileBuilder(
+        synchronizer.sync(
             packageName = "${context.packageName}.doctype",
-            filePath = context.outputPath.resolve("doctype/_HelperDocTypes.kt"),
+            relativePath = "doctype/_HelperDocTypes.kt",
         ) {
             spec.docTypes.forEach { it.addHelperCode(context) }
         }
 
-        fileBuilder(
+        synchronizer.sync(
             packageName = "${context.packageName}.doctype",
-            filePath = context.outputPath.resolve("doctype/_DummyDocTypes.kt"),
+            relativePath = "doctype/_DummyDocTypes.kt",
         ) {
             spec.dummyDocTypes.forEach { docType -> docType.addDummyCode(context) }
         }
 
-        fileBuilder(
+        synchronizer.sync(
             packageName = context.packageName,
-            filePath = context.outputPath.resolve("WhiteListFun.kt"),
+            relativePath = "WhiteListFun.kt",
         ) {
             addWhiteListFunction(packageName = context.packageName, functions = spec.whiteListFunctions)
         }
+        synchronizer.cleanup()
 
         if (config.openapi != null)
             generateOpenApiSpec(config.openapi, spec = spec)
@@ -96,6 +94,11 @@ class FrappeCodeGenService(
             }
         }
         val openApiSpecStr = json.encodeToString(openApiSpec.toJson())
-        config.path.writeText(openApiSpecStr)
+
+        val syncType = DirectorySynchronizer.sync(
+            path = config.path,
+            content = openApiSpecStr
+        )
+        println("openapi spec ${syncType.name.lowercase()}")
     }
 }

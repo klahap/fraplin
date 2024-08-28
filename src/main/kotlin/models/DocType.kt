@@ -88,9 +88,9 @@ sealed interface DocType {
             }
         }
 
-        fun Base.buildFile(context: CodeGenContext) = fileBuilder(
+        fun Base.buildFile(context: CodeGenContext) = buildFile(
             packageName = getPackageName(context),
-            filePath = context.outputPath.resolve(relativePath),
+            name = "$prettyName.kt",
         ) {
             dataClass(name = prettyName) {
                 addAnnotation(context.annotationSerializable)
