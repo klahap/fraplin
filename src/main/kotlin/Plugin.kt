@@ -35,20 +35,32 @@ class Plugin : org.gradle.api.Plugin<Project> {
             }
         }
 
-        project.task("generateFraplinDsl") { task -> task.doLast { generateFraplinDsl() } }
-        project.task("generateFraplinSpec") { task -> task.doLast { generateFraplinSpec() } }
+        project.task("generateFraplinDsl") { task ->
+            task.group = TASK_GROUP
+            task.doLast { generateFraplinDsl() }
+        }
+        project.task("generateFraplinSpec") { task ->
+            task.group = TASK_GROUP
+            task.doLast { generateFraplinSpec() }
+        }
         project.task("generateFraplin") { task ->
+            task.group = TASK_GROUP
             task.doLast {
                 generateFraplinSpec()
                 generateFraplinDsl()
             }
         }
         project.task("printFraplinConfig") { task ->
+            task.group = TASK_GROUP
             task.doLast {
                 val config = fraplin.build()
                 println()
                 println(json.encodeToString(config))
             }
         }
+    }
+
+    companion object {
+        private const val TASK_GROUP = "fraplin tools"
     }
 }
