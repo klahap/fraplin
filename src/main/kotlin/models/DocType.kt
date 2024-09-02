@@ -18,7 +18,7 @@ sealed interface DocType {
 
     sealed interface Full : DocType {
         val fields: List<DocField>
-        fun toDummy(): Dummy
+        fun toDummy() = Dummy(docTypeName = docTypeName)
     }
 
     @JvmInline
@@ -33,16 +33,57 @@ sealed interface DocType {
         override val docTypeName: Name,
         val docTypeType: Type,
         override val fields: List<DocField>,
-    ) : Full {
-        override fun toDummy() = Dummy(docTypeName = docTypeName)
-    }
+    ) : Full
 
     @Serializable
     data class Virtual(
         override val docTypeName: Name,
         override val fields: List<DocField>,
+        val ignoreFields: Map<DataType, Set<String>> = sortedMapOf(),
+        val ignoreEndpoints: Set<EndpointType> = sortedSetOf(),
     ) : Full {
-        override fun toDummy() = Dummy(docTypeName = docTypeName)
+        val endpoints
+            get() = EndpointType.values()
+                .filter { !ignoreEndpoints.contains(it) }
+                .toSet()
+
+        fun getFieldsByDataType(type: DataType): List<DocField> {
+            val ignore = ignoreFields[type] ?: sortedSetOf()
+            return fields.filter { !ignore.contains(it.fieldName) && !ignore.contains(it.prettyFieldName) }
+        }
+
+        private fun isEqualToBaseType(type: DataType) = when (type) {
+            DataType.GET -> true
+            DataType.UPDATE -> ignoreFields[type] == ignoreFields[DataType.GET]
+            DataType.CREATE -> ignoreFields[type] == ignoreFields[DataType.GET]
+        }
+
+        val dataTypes
+            get() = endpoints.flatMap { endpointType ->
+                when (endpointType) {
+                    EndpointType.GET -> listOf(DataType.GET)
+                    EndpointType.LIST -> listOf(DataType.GET)
+                    EndpointType.DELETE -> emptyList()
+                    EndpointType.UPDATE -> listOfNotNull(
+                        DataType.UPDATE.takeIf { !isEqualToBaseType(it) },
+                        DataType.GET
+                    )
+
+                    EndpointType.CREATE -> listOfNotNull(
+                        DataType.CREATE.takeIf { !isEqualToBaseType(it) },
+                        DataType.GET
+                    )
+                }
+            }.toSet()
+
+        fun getComponentName(context: OpenApiGenContext, type: DataType): String {
+            val baseName = "${context.schemaPrefix}$prettyName"
+            return when (type) {
+                DataType.GET -> baseName
+                DataType.UPDATE -> if (isEqualToBaseType(type)) baseName else "${baseName}Update"
+                DataType.CREATE -> if (isEqualToBaseType(type)) baseName else "${baseName}Create"
+            }
+        }
     }
 
     @Serializable
@@ -446,123 +487,141 @@ sealed interface DocType {
                 }
         }
 
-        private fun Virtual.getBaseSchemaName(context: OpenApiGenContext) = "${context.schemaPrefix}$prettyName"
-
-        fun Virtual.toOpenApiComponents(context: OpenApiGenContext): Collection<Component> {
-            val base = Component.Object(
-                name = getBaseSchemaName(context),
-                properties = fields.map {
-                    Component.Object.Property(
-                        name = it.fieldName,
-                        required = it.required,
-                        schema = it.toOpenApiSchema(context)
-                    )
-                }
-            )
-            val childs = fields.mapNotNull {
-                when (it) {
-                    is DocField.Select -> it.getOpenApiSpecEnum(context)
-                    is DocField.Attach, is DocField.Check, DocField.DocStatus,
-                    is DocField.DynamicLink, is DocField.Link, is DocField.Primitive,
-                    is DocField.Table -> null
-                }
+        fun Virtual.toOpenApiComponents(
+            context: OpenApiGenContext,
+        ): Collection<Component> {
+            val base = dataTypes.map { type ->
+                Component.Object(
+                    name = getComponentName(context = context, type = type),
+                    properties = getFieldsByDataType(type).map {
+                        Component.Object.Property(
+                            name = it.fieldName,
+                            required = it.required,
+                            schema = it.toOpenApiSchema(context)
+                        )
+                    }
+                )
             }
-            return listOf(base) + childs
+            val childs = dataTypes.flatMap { getFieldsByDataType(it) }
+                .distinctBy { it.fieldName }
+                .sortedBy { it.prettyFieldName }
+                .flatMap {
+                    fields.mapNotNull {
+                        when (it) {
+                            is DocField.Select -> it.getOpenApiSpecEnum(context)
+                            is DocField.Attach, is DocField.Check, DocField.DocStatus,
+                            is DocField.DynamicLink, is DocField.Link, is DocField.Primitive,
+                            is DocField.Table -> null
+                        }
+                    }
+                }
+            return base + childs
         }
 
         fun Virtual.toOpenApiPaths(context: OpenApiGenContext): Collection<Path> {
             val pathPrefix = context.pathPrefix + docTypeName.value.toHyphenated()
-            val component = Component.Ref(getBaseSchemaName(context))
-            val getAllEndpoint = Endpoint(
-                method = Endpoint.Method.GET,
-                tags = context.tags,
-                operationId = "getAll$prettyName",
-                parameters = emptyList(),
-                body = null,
-                response = Endpoint.Response(
-                    description = "get all $prettyName",
-                    schema = Schema.ArrayRef(component),
-                )
-            )
-            val insertEndpoint = Endpoint(
-                method = Endpoint.Method.POST,
-                tags = context.tags,
-                operationId = "insert$prettyName",
-                parameters = emptyList(),
-                body = Schema.Ref(component),
-                response = Endpoint.Response(
-                    description = "insert $prettyName by name",
-                    schema = Schema.Ref(component),
-                )
-            )
-            val getEndpoint = Endpoint(
-                method = Endpoint.Method.GET,
-                tags = context.tags,
-                operationId = "get$prettyName",
-                parameters = listOf(
-                    Endpoint.Parameter(
-                        name = "name",
-                        source = Endpoint.Parameter.Source.PATH,
-                        required = true,
-                        schema = Schema.Primitive(type = "string")
+            val baseComponent = Component.Ref(getComponentName(context, DataType.GET))
+            val updateComponent = Component.Ref(getComponentName(context, DataType.UPDATE))
+            val createComponent = Component.Ref(getComponentName(context, DataType.CREATE))
+
+            val endpointData = endpoints.associateWith { type ->
+                when (type) {
+                    EndpointType.GET -> Endpoint(
+                        method = Endpoint.Method.GET,
+                        tags = context.tags,
+                        operationId = "get$prettyName",
+                        parameters = listOf(
+                            Endpoint.Parameter(
+                                name = "name",
+                                source = Endpoint.Parameter.Source.PATH,
+                                required = true,
+                                schema = Schema.Primitive(type = "string")
+                            )
+                        ),
+                        body = null,
+                        response = Endpoint.Response(
+                            description = "get $prettyName by name",
+                            schema = Schema.Ref(baseComponent),
+                        )
                     )
-                ),
-                body = null,
-                response = Endpoint.Response(
-                    description = "get $prettyName by name",
-                    schema = Schema.Ref(component),
-                )
-            )
-            val deleteEndpoint = Endpoint(
-                method = Endpoint.Method.DELETE,
-                tags = context.tags,
-                operationId = "delete$prettyName",
-                parameters = listOf(
-                    Endpoint.Parameter(
-                        name = "name",
-                        source = Endpoint.Parameter.Source.PATH,
-                        required = true,
-                        schema = Schema.Primitive(type = "string")
+
+                    EndpointType.LIST -> Endpoint(
+                        method = Endpoint.Method.GET,
+                        tags = context.tags,
+                        operationId = "getAll$prettyName",
+                        parameters = emptyList(),
+                        body = null,
+                        response = Endpoint.Response(
+                            description = "get all $prettyName",
+                            schema = Schema.ArrayRef(baseComponent),
+                        )
                     )
-                ),
-                body = null,
-                response = Endpoint.Response(
-                    description = "delete $prettyName by name",
-                    schema = null,
-                )
-            )
-            val updateEndpoint = Endpoint(
-                method = Endpoint.Method.PUT,
-                tags = context.tags,
-                operationId = "update$prettyName",
-                parameters = listOf(
-                    Endpoint.Parameter(
-                        name = "name",
-                        source = Endpoint.Parameter.Source.PATH,
-                        required = true,
-                        schema = Schema.Primitive(type = "string")
+
+                    EndpointType.DELETE -> Endpoint(
+                        method = Endpoint.Method.DELETE,
+                        tags = context.tags,
+                        operationId = "delete$prettyName",
+                        parameters = listOf(
+                            Endpoint.Parameter(
+                                name = "name",
+                                source = Endpoint.Parameter.Source.PATH,
+                                required = true,
+                                schema = Schema.Primitive(type = "string")
+                            )
+                        ),
+                        body = null,
+                        response = Endpoint.Response(
+                            description = "delete $prettyName by name",
+                            schema = null,
+                        )
                     )
-                ),
-                body = Schema.Ref(component),
-                response = Endpoint.Response(
-                    description = "update $prettyName by name",
-                    schema = Schema.Ref(component),
-                )
-            )
+
+                    EndpointType.UPDATE -> Endpoint(
+                        method = Endpoint.Method.PUT,
+                        tags = context.tags,
+                        operationId = "update$prettyName",
+                        parameters = listOf(
+                            Endpoint.Parameter(
+                                name = "name",
+                                source = Endpoint.Parameter.Source.PATH,
+                                required = true,
+                                schema = Schema.Primitive(type = "string")
+                            )
+                        ),
+                        body = Schema.Ref(updateComponent),
+                        response = Endpoint.Response(
+                            description = "update $prettyName by name",
+                            schema = Schema.Ref(baseComponent),
+                        )
+                    )
+
+                    EndpointType.CREATE -> Endpoint(
+                        method = Endpoint.Method.POST,
+                        tags = context.tags,
+                        operationId = "insert$prettyName",
+                        parameters = emptyList(),
+                        body = Schema.Ref(createComponent),
+                        response = Endpoint.Response(
+                            description = "insert $prettyName by name",
+                            schema = Schema.Ref(baseComponent),
+                        )
+                    )
+                }
+            }
             return listOf(
                 Path(
                     route = pathPrefix,
-                    endpoints = listOf(
-                        getAllEndpoint,
-                        insertEndpoint,
+                    endpoints = listOfNotNull(
+                        endpointData[EndpointType.LIST],
+                        endpointData[EndpointType.CREATE],
                     )
                 ),
                 Path(
                     route = "$pathPrefix/{name}",
-                    endpoints = listOf(
-                        getEndpoint,
-                        updateEndpoint,
-                        deleteEndpoint,
+                    endpoints = listOfNotNull(
+                        endpointData[EndpointType.GET],
+                        endpointData[EndpointType.UPDATE],
+                        endpointData[EndpointType.DELETE],
                     )
                 ),
             )

@@ -12,6 +12,7 @@ import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import java.io.FileNotFoundException
 import java.nio.file.Path
+import kotlin.io.path.createParentDirectories
 import kotlin.io.path.exists
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
@@ -35,6 +36,7 @@ class FraplinService(
         codeGenService.generate(config = config, spec = spec)
 
     suspend fun writeSpec(spec: FraplinSpec, path: Path) = withContext(Dispatchers.IO) {
+        path.createParentDirectories()
         path.writeText(json.encodeToString(spec))
     }
 

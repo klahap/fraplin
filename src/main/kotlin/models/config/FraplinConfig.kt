@@ -12,8 +12,8 @@ data class FraplinConfig(
 ) {
     open class Builder(
         var specFile: Path? = null,
-        var input: FraplinInputConfig.Builder = FraplinInputConfig.Builder(),
-        var output: FraplinOutputConfig.Builder = FraplinOutputConfig.Builder(),
+        private val input: FraplinInputConfig.Builder = FraplinInputConfig.Builder(),
+        private val output: FraplinOutputConfig.Builder = FraplinOutputConfig.Builder(),
     ) {
         fun buildSpecFile() = specFile ?: throw Exception("no fraplin spec file defined")
         fun buildInput() = input.build()

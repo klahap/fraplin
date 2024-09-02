@@ -10,7 +10,11 @@ class FraplinSpecService(
 ) {
     private val frappeGitRepoService get() = FrappeGitRepoService()
     suspend fun getSpec(config: FraplinInputConfig): FraplinSpec {
-        val docTypeInfo = config.docTypes + setOf(DocTypeInfo(name = "User"))
+        val docTypeInfo = sequence {
+            yieldAll(config.docTypes)
+            config.openApiSpecs.forEach { spec -> yieldAll(spec.docTypes.map { it.docTypeInfo }) }
+            yield(DocTypeInfo(name = "User"))
+        }.toSet()
         val docTypeNames = docTypeInfo.map { it.docTypeName }.toSet()
 
         val schema = when (config.source) {
@@ -41,9 +45,29 @@ class FraplinSpecService(
         val dummyDocTypes = allDocTypes
             .filterKeys { docTypeDummyNames.contains(it) }.values
             .map { it.toDummy() }
+
+        val virtualDocTypes = docTypesGen.filterIsInstance<DocType.Virtual>().associateBy { it.docTypeName }
+        val openApiSpecs = config.openApiSpecs.map { specConfig ->
+            FraplinOpenApiSpec(
+                name = specConfig.name,
+                version = specConfig.version,
+                pathPrefix = specConfig.pathPrefix,
+                schemaPrefix = specConfig.schemaPrefix,
+                pathTags = specConfig.pathTags,
+                docTypes = specConfig.docTypes.sortedBy { it.docTypeName }.map { info ->
+                    val docType = virtualDocTypes[info.docTypeName]
+                        ?: throw Exception("virtual doc type '${info.docTypeName}' not found for OpenApi spec '${specConfig.name}'")
+                    docType.copy(
+                        ignoreFields = info.ignoreFields,
+                        ignoreEndpoints = info.ignoreEndpoints,
+                    )
+                }
+            )
+        }
+
         return FraplinSpec(
             docTypes = docTypesGen.filterIsInstance<DocType.Base>().sortedBy { it.docTypeName },
-            virtualDocTypes = docTypesGen.filterIsInstance<DocType.Virtual>().sortedBy { it.docTypeName },
+            openApi = openApiSpecs,
             dummyDocTypes = dummyDocTypes.sortedBy { it.docTypeName },
             whiteListFunctions = schema.whiteListFunctions.sortedBy { it.name },
         )

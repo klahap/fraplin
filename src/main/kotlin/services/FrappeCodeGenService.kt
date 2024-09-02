@@ -7,7 +7,6 @@ import io.github.klahap.fraplin.models.DocType.Companion.buildFile
 import io.github.klahap.fraplin.models.DocType.Companion.toOpenApiComponents
 import io.github.klahap.fraplin.models.DocType.Companion.toOpenApiPaths
 import io.github.klahap.fraplin.models.WhiteListFunction.Companion.addWhiteListFunction
-import io.github.klahap.fraplin.models.config.FraplinOpenApiConfig
 import io.github.klahap.fraplin.models.config.FraplinOutputConfig
 import io.github.klahap.fraplin.models.openapi.OpenApiSpec
 import io.github.klahap.fraplin.util.*
@@ -26,9 +25,14 @@ class FrappeCodeGenService(
 ) {
 
     suspend fun generate(config: FraplinOutputConfig, spec: FraplinSpec) {
+
         val context = CodeGenContext(
             config = config,
-            docTypes = (spec.docTypes + spec.virtualDocTypes + spec.dummyDocTypes).associateBy { it.docTypeName },
+            docTypes = sequenceOf(
+                spec.docTypes,
+                spec.openApi.flatMap { it.docTypes },
+                spec.dummyDocTypes,
+            ).flatten().associateBy { it.docTypeName },
         )
 
         val synchronizer = DirectorySynchronizer(context.outputPath)
@@ -69,26 +73,26 @@ class FrappeCodeGenService(
         }
         synchronizer.cleanup()
 
-        if (config.openapi != null)
-            generateOpenApiSpec(config.openapi, spec = spec)
+        spec.openApi.forEach { generateOpenApiSpec(config = config, spec = it) }
     }
 
     private fun generateOpenApiSpec(
-        config: FraplinOpenApiConfig,
-        spec: FraplinSpec,
+        config: FraplinOutputConfig,
+        spec: FraplinOpenApiSpec,
     ) {
-        if (spec.virtualDocTypes.isEmpty()) return
-        config.path.parent.createDirectories()
+        if (spec.docTypes.isEmpty()) return
+        if (config.openApiPath == null) throw Exception("no output path for OpenApi specs defined")
+        config.openApiPath.createDirectories()
 
         val context = OpenApiGenContext(
-            pathPrefix = config.pathPrefix,
-            schemaPrefix = config.schemaPrefix,
-            tags = config.pathTags,
+            pathPrefix = spec.pathPrefix,
+            schemaPrefix = spec.schemaPrefix,
+            tags = spec.pathTags,
         )
-        val openApiSpec = OpenApiSpec.openApiSpec(title = config.title, version = config.version) {
+        val openApiSpec = OpenApiSpec.openApiSpec(title = spec.name, version = spec.version) {
             addComponent(DocField.DocStatus.getOpenApiSpecEnum(context))
 
-            spec.virtualDocTypes.forEach { docType ->
+            spec.docTypes.forEach { docType ->
                 addComponents(docType.toOpenApiComponents(context))
                 addPaths(docType.toOpenApiPaths(context))
             }
@@ -96,9 +100,9 @@ class FrappeCodeGenService(
         val openApiSpecStr = json.encodeToString(openApiSpec.toJson())
 
         val syncType = DirectorySynchronizer.sync(
-            path = config.path,
+            path = config.openApiPath.resolve("oas-${spec.name.toHyphenated()}.json"),
             content = openApiSpecStr
         )
-        println("openapi spec ${syncType.name.lowercase()}")
+        println("openapi spec '${spec.name}' ${syncType.name.lowercase()}")
     }
 }

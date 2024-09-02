@@ -10,21 +10,17 @@ import kotlin.io.path.absolute
 data class FraplinOutputConfig(
     @Serializable(PathSerializer::class) val path: Path,
     val packageName: String,
-    val openapi: FraplinOpenApiConfig?,
+    @Serializable(PathSerializer::class) val openApiPath: Path?,
 ) {
     data class Builder(
         var path: Path? = null,
         var packageName: String? = null,
-        private var openapi: FraplinOpenApiConfig? = null,
+        var openApiPath: Path? = null,
     ) {
-        fun openapi(block: FraplinOpenApiConfig.Builder.() -> Unit) {
-            openapi = FraplinOpenApiConfig.Builder().apply(block).build()
-        }
-
         fun build() = FraplinOutputConfig(
             path = path?.absolute() ?: throw Exception("no output path defined"),
             packageName = packageName ?: throw Exception("no output package name defined"),
-            openapi = openapi,
+            openApiPath = openApiPath,
         )
     }
 }

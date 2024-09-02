@@ -7,13 +7,20 @@ import kotlinx.serialization.Serializable
 data class FraplinInputConfig(
     val source: FraplinSourceConfig,
     val docTypes: Set<DocTypeInfo>,
+    val openApiSpecs: List<FraplinOpenApiSpecConfig>,
 ) {
     data class Builder(
         private var source: FraplinSourceConfig? = null,
         private val docTypes: MutableSet<DocTypeInfo> = mutableSetOf(),
+        private val openApiSpecs: MutableList<FraplinOpenApiSpecConfig> = mutableListOf(),
     ) {
         fun addDocType(name: String, strictTyped: Boolean = false) {
-            docTypes.add(DocTypeInfo(name = name, strictTyped = strictTyped))
+            DocTypeInfo(name = name, strictTyped = strictTyped)
+                .also { docTypes.add(it) }
+        }
+
+        fun openApiSpec(name: String, block: FraplinOpenApiSpecConfig.Builder.() -> Unit) {
+            openApiSpecs.add(FraplinOpenApiSpecConfig.Builder(name = name).apply(block).build())
         }
 
         fun sourceCloud(block: FraplinSourceConfig.Cloud.Builder.() -> Unit) {
@@ -30,7 +37,8 @@ data class FraplinInputConfig(
 
         fun build() = FraplinInputConfig(
             source = source ?: throw Exception("no source defined"),
-            docTypes = docTypes.toSet().takeIf { it.isNotEmpty() } ?: throw Exception("no DocTypes defined"),
+            docTypes = docTypes.toSortedSet(),
+            openApiSpecs = openApiSpecs.sortedBy { it.name }
         )
     }
 }
