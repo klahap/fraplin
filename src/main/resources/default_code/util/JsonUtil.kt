@@ -138,6 +138,9 @@ object LocalTimeStringSerializer : StringSerializer<LocalTime> {
         alternativeParsing({}) {
             char('.'); secondFraction(minLength = 1, maxLength = 6)
         }
+        alternativeParsing({}) {
+            char('.')
+        }
     }
 }
 
