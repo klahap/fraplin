@@ -136,7 +136,7 @@ object LocalTimeStringSerializer : StringSerializer<LocalTime> {
     private val format = LocalTime.Format {
         hour(Padding.NONE); char(':'); minute(Padding.NONE); char(':'); second(Padding.NONE)
         alternativeParsing({}) {
-            char('.'); secondFraction(fixedLength = 6)
+            char('.'); secondFraction(minLength = 1, maxLength = 6)
         }
     }
 }
