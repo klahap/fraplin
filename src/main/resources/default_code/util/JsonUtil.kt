@@ -5,6 +5,7 @@ import default_code.model.FrappeDocStatus
 import default_code.model.FrappeInlineStringField
 import kotlinx.datetime.*
 import kotlinx.datetime.format.DateTimeComponents
+import kotlinx.datetime.format.Padding
 import kotlinx.datetime.format.alternativeParsing
 import kotlinx.datetime.format.char
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -133,7 +134,7 @@ object LocalTimeStringSerializer : StringSerializer<LocalTime> {
     override fun deserialize(value: String) = LocalTime.parse(value, format)
 
     private val format = LocalTime.Format {
-        hour(); char(':'); minute(); char(':'); second()
+        hour(Padding.NONE); char(':'); minute(Padding.NONE); char(':'); second(Padding.NONE)
         alternativeParsing({}) {
             char('.'); secondFraction(fixedLength = 6)
         }
