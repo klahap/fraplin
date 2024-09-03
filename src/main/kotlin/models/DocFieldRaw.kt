@@ -107,7 +107,7 @@ interface DocFieldRaw {
             )
         }
 
-        FieldTypeRaw.Table -> run {
+        FieldTypeRaw.Table, FieldTypeRaw.TableMultiSelect -> run {
             DocField.Table(
                 fieldName = fieldName,
                 nullable = DocField.Nullable.get(nullable = !notNullable, strictTyped = strictTyped),
@@ -125,9 +125,6 @@ interface DocFieldRaw {
                 option = options?.takeIf { it.isNotBlank() } ?: return@run null,
             )
         }
-
-        // TODO
-        FieldTypeRaw.TableMultiSelect -> null
 
         // null
         FieldTypeRaw.Button, FieldTypeRaw.Heading, FieldTypeRaw.ColumnBreak,
