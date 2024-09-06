@@ -75,8 +75,8 @@ open class FrappeSiteService(
             url(getFunUrl(fn))
         }.run {
             when (fn as IWhiteListFun.Scope) {
-                is IWhiteListFun.Scope.Private -> send(responseHandler = responseHandler)
-                is IWhiteListFun.Scope.Public -> send(responseHandler = responseHandler)
+                is IWhiteListFun.Scope.Private -> send(withAuthorization = true, responseHandler = responseHandler)
+                is IWhiteListFun.Scope.Public -> send(withAuthorization = false, responseHandler = responseHandler)
             }
         }
     }
