@@ -1,53 +1,54 @@
 package default_code.util
 
+import default_code.FraplinError
+import default_code.FraplinResult
+import io.github.goquati.kotlin.util.Success
+import io.github.goquati.kotlin.util.getOr
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 
-sealed class HttpException(msg: String) : Exception(msg) {
-    sealed class ClientError(msg: String) : HttpException(msg) {
-        class NotFound(msg: String? = null) : ClientError("404, not found${msg.appendMsg}")
-        class Conflict(msg: String? = null) : ClientError("409, conflict${msg.appendMsg}")
-        class Other(msg: String) : ClientError(msg)
-    }
-
-    sealed class ServerError(msg: String) : HttpException(msg) {
-        class InternalServerError(msg: String? = null) : ServerError("500, Internal Server Error${msg.appendMsg}")
-        class Other(msg: String) : ServerError(msg)
-    }
-
-    companion object {
-        private val String?.appendMsg get() = this?.let { ", $it" } ?: ""
-    }
-}
 
 fun HttpUrl.newBuilder(block: HttpUrl.Builder.() -> Unit) = newBuilder().apply(block).build()
 
-inline fun <reified T> Response.getJsonIfSuccessfulOrThrow(json: Json = Json): T {
-    throwIfError()
-    return json.decodeFromString(body!!.string())
-}
-
-inline fun <reified T> Response.getJsonIfSuccessfulOrNull(json: Json = Json): T? = try {
-    getJsonIfSuccessfulOrThrow<T>(json)
-} catch (_: Throwable) {
-    null
-}
-
-fun Response.throwIfError() {
-    if (isSuccessful) return
-    val msg = message.takeIf { it.isNotBlank() } ?: body?.string()
-    when (code) {
-        404 -> throw HttpException.ClientError.NotFound(msg)
-        409 -> throw HttpException.ClientError.Conflict(msg)
-        500 -> throw HttpException.ServerError.InternalServerError(msg)
-        in 400..499 -> throw HttpException.ClientError.Other("$code, $msg")
-        in 500..599 -> throw HttpException.ServerError.Other("$code, $msg")
+inline fun <reified T> Response.getJson(json: Json = Json): FraplinResult<T> {
+    getFraplinErrorOrNull()?.let { return it.err }
+    val data = try {
+        body!!.string()
+    } catch (e: Exception) {
+        return FraplinError(status = 422, "cannot read frappe response body").err
     }
+    return json.decodeFromStringSafe(data)
 }
+
+inline fun <reified T : JsonElement> Response.getJson(json: Json = Json, key: String): FraplinResult<T> {
+    getFraplinErrorOrNull()?.let { return it.err }
+    val data = try {
+        body!!.string()
+    } catch (e: Exception) {
+        return FraplinError(status = 422, "cannot read frappe response body").err
+    }
+    val root = json.decodeFromStringSafe<JsonObject>(data).getOr { return it.err }
+    val value = root[key] ?: return FraplinError.unprocessable("JSON body has no root field '$key'").err
+    if (value !is T) return FraplinError.unprocessable("JSON body has no root field '$key' of type '${T::class.simpleName}'").err
+    return Success(value)
+}
+
+fun Response.getFraplinErrorOrNull(): FraplinError? {
+    if (isSuccessful) return null
+    return FraplinError(status = code, msg = prettyMessage)
+}
+
+fun Response.getEmptyFraplinResult(msg: String? = null): FraplinResult<Unit> {
+    if (isSuccessful) return Success(Unit)
+    return FraplinError(status = code, msg = (msg?.let { "$it, " } ?: "") + prettyMessage).err
+}
+
+val Response.prettyMessage get() = message.takeIf { it.isNotBlank() } ?: body?.string() ?: ""
 
 fun JsonElement.toRequestBody() =
     Json.encodeToString(this).toRequestBody("application/json; charset=utf-8".toMediaType())

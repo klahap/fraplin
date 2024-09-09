@@ -24,7 +24,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("org.jetbrains.kotlin:kotlin-reflect:2.0.10")
-    implementation("org.jsoup:jsoup:1.15.3")
+    implementation("io.github.goquati:kotlin-util:1.2.2")
     testImplementation("org.jetbrains.kotlin:kotlin-test")
 }
 

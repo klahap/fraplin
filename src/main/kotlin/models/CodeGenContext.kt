@@ -2,6 +2,7 @@ package io.github.klahap.fraplin.models
 
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.TypeName
 import io.github.klahap.fraplin.models.config.FraplinOutputConfig
 
 data class CodeGenContext(
@@ -15,14 +16,14 @@ data class CodeGenContext(
     private val packageNameUtil = "$packageName.util"
     private val packageNameService = "$packageName.service"
 
-    val notFoundException = ClassName(packageNameUtil, "HttpException", "ClientError", "NotFound")
-    val conflictException = ClassName(packageNameUtil, "HttpException", "ClientError", "Conflict")
-
     val annotationSerialName = ClassName("kotlinx.serialization", "SerialName")
     val annotationSerializable = ClassName("kotlinx.serialization", "Serializable")
     val annotationFrappeField = ClassName(packageName, "FrappeField")
     val annotationFrappeTableField = ClassName(packageName, "FrappeTableField")
     val annotationFrappeDocType = ClassName(packageName, "FrappeDocType")
+
+    fun getFraplinResult(type: TypeName) =
+        ClassName(packageName, "FraplinResult").parameterizedBy(type)
 
     val safeSerializer = ClassName(packageNameUtil, "SafeSerializer")
     val booleanAsIntSerializer = ClassName(packageNameUtil, "BooleanAsIntSerializer")

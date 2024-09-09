@@ -255,6 +255,7 @@ sealed interface DocType {
         fun Base.addHelperCode(context: CodeGenContext) {
 
             val className = getClassName(context)
+            val classNameAsResult = context.getFraplinResult(className)
             val linkClassName = getLinkClassName(context)
             val builder = className.nestedClass("Builder")
             val tableBuilder = context.getFrappeDocTableBuilder(getClassName(context))
@@ -292,21 +293,13 @@ sealed interface DocType {
             addFunction("load$prettyName") {
                 receiver(context.frappeSiteService)
                 addModifiers(KModifier.SUSPEND)
-                returns(className)
+                returns(classNameAsResult)
                 if (docTypeType != Type.SINGLE) {
                     addParameter(nameName, String::class.asTypeName())
                     addStatement("return this.load(docType=%T::class, name=%L)", className, nameName)
                 } else
                     addStatement("return this.load(docType=%T::class)", className)
             }
-            if (docTypeType != Type.SINGLE)
-                addFunction("load${prettyName}OrNull") {
-                    receiver(context.frappeSiteService)
-                    addModifiers(KModifier.SUSPEND)
-                    returns(className.copy(nullable = true))
-                    addParameter(nameName, String::class.asTypeName())
-                    addStatement("return this.loadOrNull(docType=%T::class, name=%L)", className, nameName)
-                }
             if (docTypeType != Type.SINGLE)
                 addFunction("exists$prettyName") {
                     receiver(context.frappeSiteService)
@@ -319,6 +312,7 @@ sealed interface DocType {
             if (docTypeType != Type.SINGLE)
                 addFunction("delete${prettyName}") {
                     receiver(context.frappeSiteService)
+                    returns(context.getFraplinResult(Unit::class.asTypeName()))
                     addModifiers(KModifier.SUSPEND)
                     addParameter(nameName, String::class.asTypeName())
                     addStatement("return this.delete(docType=%T::class, name=%L)", className, nameName)
@@ -326,7 +320,7 @@ sealed interface DocType {
             addFunction("update$prettyName") {
                 receiver(context.frappeSiteService)
                 addModifiers(KModifier.SUSPEND)
-                returns(className)
+                returns(classNameAsResult)
                 if (docTypeType != Type.SINGLE)
                     addParameter(nameName, String::class.asTypeName())
                 else
@@ -344,7 +338,7 @@ sealed interface DocType {
                 addFunction("update") {
                     receiver(context.frappeSiteService)
                     addModifiers(KModifier.SUSPEND)
-                    returns(className)
+                    returns(classNameAsResult)
                     addParameter("link", linkClassName)
                     addParameter(
                         blockName,
@@ -360,7 +354,7 @@ sealed interface DocType {
                 addFunction("loadAll${prettyName}") {
                     receiver(context.frappeSiteService)
                     addModifiers(KModifier.SUSPEND)
-                    returns(Flow::class.asClassName().parameterizedBy(className))
+                    returns(Flow::class.asClassName().parameterizedBy(classNameAsResult))
                     addParameter(
                         blockName,
                         LambdaTypeName.get(
@@ -380,7 +374,7 @@ sealed interface DocType {
                 addFunction("loadAllNamesOf${prettyName}") {
                     receiver(context.frappeSiteService)
                     addModifiers(KModifier.SUSPEND)
-                    returns(Flow::class.asClassName().parameterizedBy(linkClassName))
+                    returns(Flow::class.asClassName().parameterizedBy(context.getFraplinResult(linkClassName)))
                     addParameter(
                         blockName,
                         LambdaTypeName.get(
@@ -390,8 +384,9 @@ sealed interface DocType {
                     ) {
                         defaultValue("{}")
                     }
+                    addImport("io.github.goquati.kotlin.util", "map")
                     addStatement(
-                        "return this.loadAllNames(docType=%T::class, block=%L)\n.map { %T(it) }",
+                        "return this.loadAllNames(docType=%T::class, block=%L)\n.map { r -> r.map {%T(it)} }",
                         className,
                         blockName,
                         linkClassName,
@@ -403,7 +398,7 @@ sealed interface DocType {
                 addFunction("create$prettyName") {
                     receiver(context.frappeSiteService)
                     addModifiers(KModifier.SUSPEND)
-                    returns(className)
+                    returns(classNameAsResult)
                     addReqParams()
                     addParameter(
                         blockName,
@@ -416,7 +411,7 @@ sealed interface DocType {
                 fun FunSpec.Builder.addCreateFunCommon() {
                     receiver(context.frappeSiteService)
                     addModifiers(KModifier.SUSPEND)
-                    returns(className)
+                    returns(classNameAsResult)
                     addParameter(buildParameter(name = nameName, type = String::class.asTypeName(), block = {}))
                     addReqParams()
                     addParameter(
@@ -431,41 +426,64 @@ sealed interface DocType {
                 addFunction("loadOrCreate$prettyName") {
                     addCreateFunCommon()
                     addCode {
-                        beginControlFlow("return try")
-                        addStatement("this.load(docType=%T::class, name=%L)", className, nameName)
-                        nextControlFlow("catch (e: %T)", context.notFoundException)
+                        addImport("io.github.goquati.kotlin.util", "getOr")
+                        addImport("io.github.goquati.kotlin.util", "Success")
+                        beginControlFlow("return this.load(docType=%T::class, name=%L).getOr", className, nameName)
+                        beginControlFlow("return if (it.status != 404)")
+                        addStatement("it.err")
+                        nextControlFlow("else")
                         addStatement("this.create(docType=%T::class, data=%L)", className, dataName)
                         endControlFlow()
+                        endControlFlow()
+                        addStatement(".let { Success(it) }")
                     }
                 }
                 addFunction("createOrLoad$prettyName") {
                     addCreateFunCommon()
                     addCode {
-                        beginControlFlow("return try")
-                        addStatement("this.create(docType=%T::class, data=%L)", className, dataName)
-                        nextControlFlow("catch (e: %T)", context.conflictException)
+                        addImport("io.github.goquati.kotlin.util", "getOr")
+                        addImport("io.github.goquati.kotlin.util", "Success")
+                        beginControlFlow("return this.create(docType=%T::class, data=%L).getOr", className, dataName)
+                        beginControlFlow("return if (it.status != 409)")
+                        addStatement("it.err")
+                        nextControlFlow("else")
                         addStatement("this.load(docType=%T::class, name=%L)", className, nameName)
                         endControlFlow()
+                        endControlFlow()
+                        addStatement(".let { Success(it) }")
                     }
                 }
                 addFunction("updateOrCreate$prettyName") {
                     addCreateFunCommon()
                     addCode {
-                        beginControlFlow("return try")
-                        addStatement("this.update(docType=%T::class, name=%L, data=%L)", className, nameName, dataName)
-                        nextControlFlow("catch (e: %T)", context.notFoundException)
+                        addImport("io.github.goquati.kotlin.util", "getOr")
+                        addImport("io.github.goquati.kotlin.util", "Success")
+                        beginControlFlow(
+                            "return this.update(docType=%T::class, name=%L, data=%L).getOr",
+                            className, nameName, dataName
+                        )
+                        beginControlFlow("return if (it.status != 404)")
+                        addStatement("it.err")
+                        nextControlFlow("else")
                         addStatement("this.create(docType=%T::class, data=%L)", className, dataName)
                         endControlFlow()
+                        endControlFlow()
+                        addStatement(".let { Success(it) }")
                     }
                 }
                 addFunction("createOrUpdate$prettyName") {
                     addCreateFunCommon()
                     addCode {
-                        beginControlFlow("return try")
-                        addStatement("this.create(docType=%T::class, data=%L)", className, dataName)
-                        nextControlFlow("catch (e: %T)", context.conflictException)
+                        addImport("io.github.goquati.kotlin.util", "getOr")
+                        addImport("io.github.goquati.kotlin.util", "Success")
+                        beginControlFlow("return this.create(docType=%T::class, data=%L).getOr", className, dataName)
+                        beginControlFlow("return if (it.status != 409)")
+                        addStatement("it.err")
+                        nextControlFlow("else")
                         addStatement("this.update(docType=%T::class, name=%L, data=%L)", className, nameName, dataName)
                         endControlFlow()
+                        endControlFlow()
+                        addStatement(".let { Success(it) }")
                     }
                 }
             }

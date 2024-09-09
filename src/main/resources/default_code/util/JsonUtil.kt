@@ -1,13 +1,17 @@
 package default_code.util
 
+import default_code.FraplinError
+import default_code.FraplinResult
 import default_code.model.FrappeAttachField
 import default_code.model.FrappeDocStatus
 import default_code.model.FrappeInlineStringField
+import io.github.goquati.kotlin.util.Success
 import kotlinx.datetime.*
 import kotlinx.datetime.format.DateTimeComponents
 import kotlinx.datetime.format.Padding
 import kotlinx.datetime.format.alternativeParsing
 import kotlinx.datetime.format.char
+import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -15,7 +19,30 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.decodeFromJsonElement
 
+public fun <T> Json.decodeFromJsonElementSafe(
+    deserializer: DeserializationStrategy<T>,
+    element: JsonElement,
+): FraplinResult<T> = try {
+    Success(decodeFromJsonElement(deserializer = deserializer, element = element))
+} catch (e: Exception) {
+    FraplinError(status = 422, "Unprocessable JSON body, ${e.message}").err
+}
+
+public inline fun <reified T> Json.decodeFromJsonElementSafe(element: JsonElement): FraplinResult<T> = try {
+    Success(decodeFromJsonElement<T>(element))
+} catch (e: Exception) {
+    FraplinError(status = 422, "Unprocessable JSON body, ${e.message}").err
+}
+
+public inline fun <reified T> Json.decodeFromStringSafe(data: String): FraplinResult<T> = try {
+    Success(decodeFromString<T>(data))
+} catch (e: Exception) {
+    FraplinError(status = 422, "Unprocessable JSON body, ${e.message}").err
+}
 
 open class SafeSerializer<T>(
     private val serializer: KSerializer<T>

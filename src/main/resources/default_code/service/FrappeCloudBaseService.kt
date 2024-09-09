@@ -1,13 +1,16 @@
 package default_code.service
 
-import default_code.FrappeSiteNotExistsException
+import default_code.FraplinError
+import default_code.FraplinResult
 import default_code.util.*
+import io.github.goquati.kotlin.util.Success
+import io.github.goquati.kotlin.util.flatMap
+import io.github.goquati.kotlin.util.getOr
+import io.github.goquati.kotlin.util.map
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.datetime.*
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.*
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.coroutines.executeAsync
@@ -30,64 +33,67 @@ open class FrappeCloudBaseService(
 ) {
 
     private fun frappeCloudUrl(path: String) = "https://frappecloud.com/api/method/$path".toHttpUrl()
-    private val siteTokens = ConcurrentHashMap<HttpUrl, CompletableFuture<SiteToken>>()
+    private val siteTokens = ConcurrentHashMap<HttpUrl, CompletableFuture<FraplinResult<SiteToken>>>()
 
     val client: OkHttpClient
         get() = baseClient
 
-    suspend fun getSiteAuthHeader(
+    fun getSiteAuthHeaderBuilder(
         siteUrl: HttpUrl,
         siteToken: String? = null,
-    ): suspend Headers.Builder.() -> Unit {
+    ): suspend Headers.Builder.() -> FraplinResult<Unit> {
         return if (siteToken.isNullOrBlank()) {
-            { 
-                if (!existsSite(siteUrl)) throw FrappeSiteNotExistsException(siteUrl)
-                val sid = getSiteToken(siteUrl).token
-                add("Cookie", "sid=$sid")
+            {
+                getSiteToken(siteUrl).map { token ->
+                    add("Cookie", "sid=${token.token}")
+                }
             }
         } else {
-            { add("Authorization", "token $siteToken") }
+            {
+                add("Authorization", "token $siteToken")
+                Success(Unit)
+            }
         }
     }
 
-    suspend fun existsSite(siteUrl: HttpUrl): Boolean = getSite(siteUrl)?.let { true } ?: false
+    suspend fun existsSite(siteUrl: HttpUrl): Boolean = getSite(siteUrl).isSuccess
 
-    suspend fun getSite(siteUrl: HttpUrl): JsonObject? = Request.Builder()
+    suspend fun getSite(siteUrl: HttpUrl): FraplinResult<JsonObject> = Request.Builder()
         .post(JsonObject(mapOf("name" to JsonPrimitive(siteUrl.host))).toRequestBody())
         .url(frappeCloudUrl("press.api.site.get"))
         .send {
-            if (code in 403..404) null
-            else getJsonIfSuccessfulOrThrow<JsonObject>()["message"]!!.jsonObject
+            getJson<JsonObject>(key = "message")
         }
 
-    suspend fun getSiteUpdates(siteUrl: HttpUrl): JsonObject = Request.Builder()
+    suspend fun getSiteUpdates(siteUrl: HttpUrl): FraplinResult<JsonObject> = Request.Builder()
         .post(JsonObject(mapOf("name" to JsonPrimitive(siteUrl.host))).toRequestBody())
         .url(frappeCloudUrl("press.api.site.check_for_updates"))
         .send {
-            if (code in 403..404) throw FrappeSiteNotExistsException(siteUrl)
-            getJsonIfSuccessfulOrThrow<JsonObject>()["message"]!!.jsonObject
+            getJson<JsonObject>(key = "message")
         }
 
-    suspend fun getSiteToken(siteUrl: HttpUrl): SiteToken {
+    suspend fun getSiteToken(siteUrl: HttpUrl): FraplinResult<SiteToken> {
         val siteToken = siteTokens.getValueForKey(siteUrl) { url ->
             val body = JsonObject(mapOf("name" to JsonPrimitive(url.host))).toRequestBody()
             val token = Request.Builder()
                 .post(body)
                 .url(frappeCloudUrl("press.api.site.login"))
                 .send {
-                    if (code in 403..404) throw FrappeSiteNotExistsException(siteUrl)
-                    getJsonIfSuccessfulOrThrow<JsonObject>()["message"]!!.jsonObject["sid"]!!.jsonPrimitive.content
-                }
+                    getJson<JsonObject>(key = "message").flatMap { it.getStringField("sid") }
+                }.getOr { return@getValueForKey it.err }
             SiteToken(
                 token = token,
                 expiresIn = now.plusHours(3 * 24 - 1),
-            )
+            ).let { Success(it) }
+        }.getOr {
+            siteTokens.remove(siteUrl)
+            return it.err
         }
         return if (siteToken.isExpired()) {
             siteTokens.remove(siteUrl)
             getSiteToken(siteUrl)
         } else
-            siteToken
+            Success(siteToken)
     }
 
     data class SiteToken(
@@ -105,6 +111,14 @@ open class FrappeCloudBaseService(
         private val now get() = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
         private fun LocalDateTime.plusHours(hours: Long) =
             toJavaLocalDateTime().plusHours(hours).toKotlinLocalDateTime()
+
+        private fun JsonObject.getStringField(key: String): FraplinResult<String> {
+            val field = this[key]
+                ?: return FraplinError.unprocessable("frappe cloud response json has no field '$key'").err
+            if (field !is JsonPrimitive || !field.isString)
+                return FraplinError.unprocessable("frappe cloud response json has no field '$key' of type String").err
+            return Success(field.content)
+        }
     }
 
 }
