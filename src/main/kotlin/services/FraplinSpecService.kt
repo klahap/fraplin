@@ -1,5 +1,6 @@
 package io.github.klahap.fraplin.services
 
+import io.github.goquati.kotlin.util.intersectAll
 import io.github.klahap.fraplin.models.*
 import io.github.klahap.fraplin.models.config.FraplinInputConfig
 import io.github.klahap.fraplin.models.config.FraplinSourceConfig
@@ -57,9 +58,19 @@ class FraplinSpecService(
                 docTypes = specConfig.docTypes.sortedBy { it.docTypeName }.map { info ->
                     val docType = virtualDocTypes[info.docTypeName]
                         ?: throw Exception("virtual doc type '${info.docTypeName}' not found for OpenApi spec '${specConfig.name}'")
+                    val validDataTypes = docType.dataTypes
+                    val ignoreFieldsInAllDataTypes = validDataTypes
+                        .map { info.ignoreFields[it] ?: emptyList() }
+                        .intersectAll().toSet()
+
                     docType.copy(
-                        ignoreFields = info.ignoreFields,
-                        ignoreEndpoints = info.ignoreEndpoints,
+                        fields = docType.fields.filter { it.fieldName !in ignoreFieldsInAllDataTypes }
+                            .sortedBy { it.fieldName },
+                        ignoreFields = info.ignoreFields
+                            .filterKeys { it in validDataTypes }
+                            .mapValues { it.value.sorted() }
+                            .toSortedMap(),
+                        ignoreEndpoints = info.ignoreEndpoints.sorted(),
                     )
                 }
             )

@@ -1,8 +1,6 @@
 package io.github.klahap.fraplin.models
 
 import kotlinx.serialization.Serializable
-import java.util.SortedMap
-import java.util.SortedSet
 
 enum class EndpointType { GET, LIST, DELETE, UPDATE, CREATE }
 enum class DataType { GET, UPDATE, CREATE }
@@ -11,8 +9,8 @@ enum class DataType { GET, UPDATE, CREATE }
 data class VirtualDocTypeInfo(
     val name: String,
     val strictTyped: Boolean = false,
-    val ignoreFields: SortedMap<DataType, SortedSet<String>>,
-    val ignoreEndpoints: SortedSet<EndpointType>,
+    val ignoreFields: Map<DataType, List<String>>,
+    val ignoreEndpoints: List<EndpointType>,
 ) : Comparable<VirtualDocTypeInfo> {
     val docTypeName get() = DocType.Name(name)
 
@@ -63,9 +61,9 @@ data class VirtualDocTypeInfo(
             name = name,
             strictTyped = strictTyped,
             ignoreFields = ignoredFields
-                .mapValues { it.value.toSortedSet() }
+                .mapValues { it.value.sorted() }
                 .toSortedMap(),
-            ignoreEndpoints = ignoredEndpoints.toSortedSet(),
+            ignoreEndpoints = ignoredEndpoints.sorted(),
         )
     }
 }

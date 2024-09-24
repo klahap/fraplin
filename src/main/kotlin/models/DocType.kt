@@ -39,8 +39,8 @@ sealed interface DocType {
     data class Virtual(
         override val docTypeName: Name,
         override val fields: List<DocField>,
-        val ignoreFields: Map<DataType, Set<String>> = sortedMapOf(),
-        val ignoreEndpoints: Set<EndpointType> = sortedSetOf(),
+        val ignoreFields: Map<DataType, List<String>> = emptyMap(),
+        val ignoreEndpoints: List<EndpointType> = emptyList(),
     ) : Full {
         val endpoints
             get() = EndpointType.values()
@@ -48,7 +48,7 @@ sealed interface DocType {
                 .toSet()
 
         fun getFieldsByDataType(type: DataType): List<DocField> {
-            val ignore = ignoreFields[type] ?: sortedSetOf()
+            val ignore = ignoreFields[type]?.toSet() ?: emptySet()
             return fields.filter { !ignore.contains(it.fieldName) && !ignore.contains(it.prettyFieldName) }
         }
 
