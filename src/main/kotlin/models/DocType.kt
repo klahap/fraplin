@@ -2,6 +2,8 @@ package io.github.klahap.fraplin.models
 
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import io.github.klahap.fraplin.models.VirtualDocTypeInfo.Companion.getValidDataTypes
+import io.github.klahap.fraplin.models.VirtualDocTypeInfo.Companion.isEqualToBaseType
 import io.github.klahap.fraplin.models.openapi.Component
 import io.github.klahap.fraplin.models.openapi.Endpoint
 import io.github.klahap.fraplin.models.openapi.Path
@@ -52,36 +54,18 @@ sealed interface DocType {
             return fields.filter { !ignore.contains(it.fieldName) && !ignore.contains(it.prettyFieldName) }
         }
 
-        private fun isEqualToBaseType(type: DataType) = when (type) {
-            DataType.GET -> true
-            DataType.UPDATE -> ignoreFields[type] == ignoreFields[DataType.GET]
-            DataType.CREATE -> ignoreFields[type] == ignoreFields[DataType.GET]
-        }
-
         val dataTypes
-            get() = endpoints.flatMap { endpointType ->
-                when (endpointType) {
-                    EndpointType.GET -> listOf(DataType.GET)
-                    EndpointType.LIST -> listOf(DataType.GET)
-                    EndpointType.DELETE -> emptyList()
-                    EndpointType.UPDATE -> listOfNotNull(
-                        DataType.UPDATE.takeIf { !isEqualToBaseType(it) },
-                        DataType.GET
-                    )
-
-                    EndpointType.CREATE -> listOfNotNull(
-                        DataType.CREATE.takeIf { !isEqualToBaseType(it) },
-                        DataType.GET
-                    )
-                }
-            }.toSet()
+            get() = getValidDataTypes(
+                ignoreEndpoints = ignoreEndpoints,
+                ignoreFields = ignoreFields,
+            )
 
         fun getComponentName(context: OpenApiGenContext, type: DataType): String {
             val baseName = "${context.schemaPrefix}$prettyName"
             return when (type) {
                 DataType.GET -> baseName
-                DataType.UPDATE -> if (isEqualToBaseType(type)) baseName else "${baseName}Update"
-                DataType.CREATE -> if (isEqualToBaseType(type)) baseName else "${baseName}Create"
+                DataType.UPDATE -> if (ignoreFields.isEqualToBaseType(type)) baseName else "${baseName}Update"
+                DataType.CREATE -> if (ignoreFields.isEqualToBaseType(type)) baseName else "${baseName}Create"
             }
         }
     }

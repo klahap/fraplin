@@ -57,13 +57,47 @@ data class VirtualDocTypeInfo(
             DataType.entries.forEach { ignoreFields(type = it, names = names) }
         }
 
-        fun build() = VirtualDocTypeInfo(
-            name = name,
-            strictTyped = strictTyped,
-            ignoreFields = ignoredFields
-                .mapValues { it.value.sorted() }
-                .toSortedMap(),
-            ignoreEndpoints = ignoredEndpoints.sorted(),
-        )
+        fun build(): VirtualDocTypeInfo {
+            val validDataTypes = getValidDataTypes(ignoreEndpoints = ignoredEndpoints, ignoreFields = ignoredFields)
+            return VirtualDocTypeInfo(
+                name = name,
+                strictTyped = strictTyped,
+                ignoreFields = ignoredFields
+                    .filterKeys { it in validDataTypes }
+                    .mapValues { it.value.sorted() }
+                    .toSortedMap(),
+                ignoreEndpoints = ignoredEndpoints.sorted(),
+            )
+        }
+    }
+
+    companion object {
+        fun Map<DataType, Collection<String>>.isEqualToBaseType(type: DataType) = when (type) {
+            DataType.GET -> true
+            DataType.UPDATE -> get(type)?.toSet() == get(DataType.GET)?.toSet()
+            DataType.CREATE -> get(type)?.toSet() == get(DataType.GET)?.toSet()
+        }
+
+        fun getValidDataTypes(
+            ignoreEndpoints: Collection<EndpointType>,
+            ignoreFields: Map<DataType, Collection<String>>,
+        ) = EndpointType.values()
+            .filter { !ignoreEndpoints.contains(it) }
+            .toSet().flatMap { endpointType ->
+                when (endpointType) {
+                    EndpointType.GET -> listOf(DataType.GET)
+                    EndpointType.LIST -> listOf(DataType.GET)
+                    EndpointType.DELETE -> emptyList()
+                    EndpointType.UPDATE -> listOfNotNull(
+                        DataType.UPDATE.takeIf { !ignoreFields.isEqualToBaseType(it) },
+                        DataType.GET
+                    )
+
+                    EndpointType.CREATE -> listOfNotNull(
+                        DataType.CREATE.takeIf { !ignoreFields.isEqualToBaseType(it) },
+                        DataType.GET
+                    )
+                }
+            }.toSet()
     }
 }
