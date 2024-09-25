@@ -498,7 +498,7 @@ sealed interface DocType {
                     properties = getFieldsByDataType(type).map {
                         Component.Object.Property(
                             name = it.fieldName,
-                            required = it.required,
+                            required = it.required || (it.fieldName == "name" && type == DataType.GET),
                             schema = it.toOpenApiSchema(context)
                         )
                     }

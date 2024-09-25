@@ -90,17 +90,20 @@ class FrappeCodeGenService(
             tags = spec.pathTags,
         )
         val openApiSpec = OpenApiSpec.openApiSpec(title = spec.name, version = spec.version) {
-            addComponent(DocField.DocStatus.getOpenApiSpecEnum(context))
-
+            val hasDocStatus = spec.docTypes.any { doctype ->
+                doctype.fields.any { it.fieldName == "docstatus" }
+            }
+            if (hasDocStatus)
+                addComponent(DocField.DocStatus.getOpenApiSpecEnum(context))
             spec.docTypes.forEach { docType ->
                 addComponents(docType.toOpenApiComponents(context))
                 addPaths(docType.toOpenApiPaths(context))
             }
         }
-        val openApiSpecStr = json.encodeToString(openApiSpec.toJson())
+        val openApiSpecStr = openApiSpec.toYaml()
 
         val syncType = DirectorySynchronizer.sync(
-            path = config.openApiPath.resolve("oas-${spec.name.toHyphenated()}.json"),
+            path = config.openApiPath.resolve("oas-${spec.name.toHyphenated()}.yaml"),
             content = openApiSpecStr
         )
         println("openapi spec '${spec.name}' ${syncType.name.lowercase()}")

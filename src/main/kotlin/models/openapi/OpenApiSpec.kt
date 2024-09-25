@@ -1,5 +1,8 @@
 package io.github.klahap.fraplin.models.openapi
 
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.*
+
 data class OpenApiSpec(
     val info: Info,
     val paths: List<Path>,
@@ -13,6 +16,8 @@ data class OpenApiSpec(
             "schemas" to jsonOf(components.associate { it.toJson() })
         )
     )
+
+    fun toYaml(): String = toJson().encodeToYamlString()
 
     data class Info(
         val title: String,
@@ -61,6 +66,19 @@ data class OpenApiSpec(
             if (missing.isNotEmpty())
                 throw Exception("error creating OpenApi spec, missing components: $missing")
         }
+    }
+
+    private fun JsonElement.encodeToYamlString(level: Int = 0, indent: String = "  "): String = when (this) {
+        is JsonArray -> "\n" + joinToString("\n") {
+            "${indent.repeat(level)}- ${it.encodeToYamlString(level + 1)}"
+        }
+
+        is JsonObject -> "\n" + entries.joinToString(separator = "\n") {
+            "${indent.repeat(level)}${it.key}: ${it.value.encodeToYamlString(level + 1)}"
+        }
+
+        is JsonPrimitive ->  Json.encodeToString(this)
+        JsonNull -> "null"
     }
 
     companion object {
