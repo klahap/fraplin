@@ -357,7 +357,11 @@ open class FrappeSiteService(
     ) = baseUrl.newBuilder {
         addPathSegment("api/method/${fn.name}")
         args.forEach { (key, value) ->
-            addQueryParameter(key, Json.encodeToString(value))
+            addQueryParameter(key, when(value) {
+                is JsonArray, is JsonObject -> Json.encodeToString(value)
+                is JsonPrimitive -> value.content
+                JsonNull -> "null"
+            })
         }
     }
 
