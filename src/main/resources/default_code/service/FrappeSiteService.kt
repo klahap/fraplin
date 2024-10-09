@@ -364,16 +364,16 @@ open class FrappeSiteService(
         body: RequestBody,
         fileName: String,
         isPrivate: Boolean,
-        docType: KClass<D>,
-        name: String,
+        link: FrappeLinkField<D>,
     ): FraplinResult<Unit> {
         return requestBuilder {
-            postMultipartBody {
-                setType(MultipartBody.FORM)
-                addFormDataPart("file", fileName, body)
-                addFormDataPart("is_private", if (isPrivate) "1" else "0")
-                addFormDataPart("doctype", docType.getDocTypeName().name)
-                addFormDataPart("docname", name)
+            multipartBody {
+                setDefaultFileUploadArgs(
+                    body = body,
+                    fileName = fileName,
+                    isPrivate = isPrivate,
+                    link = link,
+                )
             }
             url("$baseUrl/api/method/upload_file")
         }.send {
@@ -509,14 +509,15 @@ open class FrappeSiteService(
             fileName: String,
             isPrivate: Boolean,
             link: FrappeLinkField<D>,
-            fieldName: KProperty1<D, FrappeAttachField?>,
+            fieldName: KProperty1<D, FrappeAttachField?>? = null,
         ) {
             setType(MultipartBody.FORM)
             addFormDataPart("file", fileName, body)
             addFormDataPart("is_private", if (isPrivate) "1" else "0")
             addFormDataPart("doctype", link.docType.getDocTypeName().name)
             addFormDataPart("docname", link.value)
-            addFormDataPart("fieldname", fieldName.name)
+            if (fieldName != null)
+                addFormDataPart("fieldname", fieldName.name)
         }
     }
 }
