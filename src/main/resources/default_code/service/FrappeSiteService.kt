@@ -21,7 +21,6 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.createType
 
-
 open class FrappeSiteService(
     protected val baseUrl: HttpUrl,
     private val additionalHeaderBuilder: suspend Headers.Builder.() -> FraplinResult<Unit>,
@@ -361,7 +360,30 @@ open class FrappeSiteService(
         }
     }
 
-
+    suspend fun <D : DocType> uploadAttachment(
+        body: RequestBody,
+        fileName: String,
+        isPrivate: Boolean,
+        docType: KClass<D>,
+        name: String,
+    ): FraplinResult<Unit> {
+        return requestBuilder {
+            postMultipartBody {
+                setType(MultipartBody.FORM)
+                addFormDataPart("file", fileName, body)
+                addFormDataPart("is_private", if (isPrivate) "1" else "0")
+                addFormDataPart("doctype", docType.getDocTypeName().name)
+                addFormDataPart("docname", name)
+            }
+            url("$baseUrl/api/method/upload_file")
+        }.send {
+            if (this.isSuccessful)
+                Success(Unit)
+            else
+                Failure(FraplinError(msg = this.message, status = this.code))
+        }
+    }
+    
     suspend fun <D : DocType.Single> uploadFile(
         body: RequestBody,
         fileName: String,
