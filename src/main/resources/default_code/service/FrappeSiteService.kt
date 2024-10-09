@@ -46,6 +46,7 @@ open class FrappeSiteService(
         fn: T,
         additionalArgs: Map<String, JsonElement> = emptyMap(),
         argBuilder: A.() -> JsonElement,
+        body: RequestBody? = null,
         responseHandler: Response.() -> FraplinResult<R>,
     ): FraplinResult<R> where
             A : JsonElementField<*>,
@@ -53,29 +54,39 @@ open class FrappeSiteService(
             T : IWhiteListFun.Scope = callWhiteListFunInternal(
         fn = fn,
         args = fn.getArgs(argBuilder) + additionalArgs,
+        body = body,
         responseHandler = responseHandler
     )
 
     suspend fun <T, R> callWhiteListFun(
         fn: T,
         additionalArgs: Map<String, JsonElement> = emptyMap(),
+        body: RequestBody? = null,
         responseHandler: Response.() -> FraplinResult<R>,
     ): FraplinResult<R> where
             T : IWhiteListFun.Args.Without,
             T : IWhiteListFun.Scope = callWhiteListFunInternal(
         fn = fn,
         args = additionalArgs,
+        body = body,
         responseHandler = responseHandler
     )
 
     private suspend fun <T, R> callWhiteListFunInternal(
         fn: T,
         args: Map<String, JsonElement>,
+        body: RequestBody?,
         responseHandler: Response.() -> FraplinResult<R>,
     ): FraplinResult<R> where T : IWhiteListFun.Args, T : IWhiteListFun.Scope {
         return requestBuilder {
-            post(JsonObject(args).toRequestBody())
-            url(getFunUrl(fn))
+            if (body == null) {
+                post(JsonObject(args).toRequestBody())
+                url(getFunUrl(fn, args = emptyMap()))
+            }
+            else {
+                post(body)
+                url(getFunUrl(fn, args = args))
+            }
         }.run {
             when (fn as IWhiteListFun.Scope) {
                 is IWhiteListFun.Scope.Private -> send(withAuthorization = true, responseHandler = responseHandler)
@@ -340,8 +351,14 @@ open class FrappeSiteService(
                 addPathSegment(name)
         }
 
-    private fun getFunUrl(fn: IWhiteListFun) = baseUrl.newBuilder {
+    private fun getFunUrl(
+        fn: IWhiteListFun,
+        args: Map<String, JsonElement>,
+    ) = baseUrl.newBuilder {
         addPathSegment("api/method/${fn.name}")
+        args.forEach { (key, value) ->
+            addQueryParameter(key, value.toString())
+        }
     }
 
 
