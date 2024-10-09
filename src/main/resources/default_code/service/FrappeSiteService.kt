@@ -13,6 +13,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import kotlinx.serialization.serializer
 import okhttp3.*
@@ -356,7 +357,7 @@ open class FrappeSiteService(
     ) = baseUrl.newBuilder {
         addPathSegment("api/method/${fn.name}")
         args.forEach { (key, value) ->
-            addQueryParameter(key, value.toString())
+            addQueryParameter(key, Json.encodeToString(value))
         }
     }
 
