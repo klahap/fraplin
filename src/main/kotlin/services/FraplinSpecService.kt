@@ -51,10 +51,12 @@ class FraplinSpecService(
         val openApiSpecs = config.openApiSpecs.map { specConfig ->
             FraplinOpenApiSpec(
                 name = specConfig.name,
+                title = specConfig.title,
                 version = specConfig.version,
                 pathPrefix = specConfig.pathPrefix,
                 schemaPrefix = specConfig.schemaPrefix,
                 pathTags = specConfig.pathTags,
+                docStatusAsInteger = specConfig.docStatusAsInteger,
                 docTypes = specConfig.docTypes.sortedBy { it.docTypeName }.map { info ->
                     val docType = virtualDocTypes[info.docTypeName]
                         ?: throw Exception("virtual doc type '${info.docTypeName}' not found for OpenApi spec '${specConfig.name}'")

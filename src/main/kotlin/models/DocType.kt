@@ -551,7 +551,32 @@ sealed interface DocType {
                         method = Endpoint.Method.GET,
                         tags = context.tags,
                         operationId = "getAll$prettyName",
-                        parameters = emptyList(),
+                        parameters = listOf(
+                            Endpoint.Parameter(
+                                name ="order_by",
+                                source = Endpoint.Parameter.Source.QUERY,
+                                required = false,
+                                schema = Schema.Primitive(type = "string", nullable = false),
+                            ),
+                            Endpoint.Parameter(
+                                name ="filter",
+                                source = Endpoint.Parameter.Source.QUERY,
+                                required = false,
+                                schema = Schema.Primitive(type = "string", nullable = false),
+                            ),
+                            Endpoint.Parameter(
+                                name ="start",
+                                source = Endpoint.Parameter.Source.QUERY,
+                                required = false,
+                                schema = Schema.Primitive(type = "integer", format = "int64", nullable = false),
+                            ),
+                            Endpoint.Parameter(
+                                name ="page_length",
+                                source = Endpoint.Parameter.Source.QUERY,
+                                required = false,
+                                schema = Schema.Primitive(type = "integer", format = "int64", nullable = false),
+                            ),
+                        ),
                         body = null,
                         response = Endpoint.Response(
                             description = "get all $prettyName",

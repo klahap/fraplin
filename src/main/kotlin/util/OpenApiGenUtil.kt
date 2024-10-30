@@ -14,7 +14,13 @@ fun DocField.toOpenApiSchema(context: OpenApiGenContext): Schema {
     return when (this) {
         is DocField.Attach -> Schema.Primitive(type = "string", nullable = isNullable)
         is DocField.Check -> Schema.Primitive(type = "boolean", nullable = isNullable)
-        DocField.DocStatus -> Schema.Ref(Component.Ref(getDocStatusEnumName(context)))
+        DocField.DocStatus -> {
+            if (context.docStatusAsInteger)
+                Schema.Primitive("integer")
+            else
+                Schema.Ref(Component.Ref(getDocStatusEnumName(context)))
+        }
+
         is DocField.DynamicLink -> Schema.Primitive(type = "string", nullable = isNullable)
         is DocField.Link -> Schema.Primitive(type = "string", nullable = isNullable)
         is DocField.Primitive -> Schema.Primitive(

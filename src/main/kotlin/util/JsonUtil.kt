@@ -6,8 +6,10 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.*
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.nio.file.Path
@@ -60,4 +62,76 @@ object DocTypeNameSerializer : KSerializer<DocType.Name> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("DocTypeName", PrimitiveKind.STRING)
     override fun serialize(encoder: Encoder, value: DocType.Name) = encoder.encodeString(value.value)
     override fun deserialize(decoder: Decoder) = DocType.Name(decoder.decodeString())
+}
+
+fun JsonElement.encodeToYamlString(indent: String = "  "): String =
+    encodeToYamlString(level = 0, indent = indent, parentType = YamlParentNodeType.ROOT)
+
+enum class YamlParentNodeType { ROOT, ARRAY, OBJECT }
+
+fun JsonElement.encodeToYamlString(
+    level: Int,
+    indent: String,
+    parentType: YamlParentNodeType,
+): String = when (this) {
+    is JsonArray -> {
+        val prefix = when (parentType) {
+            YamlParentNodeType.ROOT -> ""
+            YamlParentNodeType.ARRAY -> ""
+            YamlParentNodeType.OBJECT -> "\n"
+        }
+        prefix + joinToString("\n") {
+            "${indent.repeat(level)}-${
+                it.encodeToYamlString(
+                    level = level + 1,
+                    indent = indent,
+                    parentType = YamlParentNodeType.ARRAY,
+                )
+            }"
+        }
+    }
+
+    is JsonObject -> {
+        val prefix = when (parentType) {
+            YamlParentNodeType.ROOT -> ""
+            YamlParentNodeType.ARRAY -> ""
+            YamlParentNodeType.OBJECT -> "\n"
+        }
+        val currentIndent = indent.repeat(level)
+        val firstIndent = when (parentType) {
+            YamlParentNodeType.ROOT -> currentIndent
+            YamlParentNodeType.ARRAY -> " "
+            YamlParentNodeType.OBJECT -> currentIndent
+        }
+        prefix + entries.mapIndexed { idx, it ->
+            "${if (idx == 0) firstIndent else currentIndent}${it.key}:${
+                it.value.encodeToYamlString(
+                    level = level + 1,
+                    indent = indent,
+                    parentType = YamlParentNodeType.OBJECT
+                )
+            }"
+        }.joinToString(separator = "\n")
+    }
+
+    is JsonPrimitive -> {
+        val prefix = when (parentType) {
+            YamlParentNodeType.ROOT -> ""
+            YamlParentNodeType.ARRAY -> " "
+            YamlParentNodeType.OBJECT -> " "
+        }
+        prefix + if (isString && content.toSet().intersect(":#-*&%@?!<>|{}".toSet()).isEmpty())
+            content
+        else
+            Json.encodeToString(this)
+    }
+
+    JsonNull -> {
+        val prefix = when (parentType) {
+            YamlParentNodeType.ROOT -> ""
+            YamlParentNodeType.ARRAY -> " "
+            YamlParentNodeType.OBJECT -> " "
+        }
+        prefix + "null"
+    }
 }

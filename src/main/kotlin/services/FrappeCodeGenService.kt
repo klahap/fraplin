@@ -88,12 +88,13 @@ class FrappeCodeGenService(
             pathPrefix = spec.pathPrefix,
             schemaPrefix = spec.schemaPrefix,
             tags = spec.pathTags,
+            docStatusAsInteger= spec.docStatusAsInteger,
         )
-        val openApiSpec = OpenApiSpec.openApiSpec(title = spec.name, version = spec.version) {
+        val openApiSpec = OpenApiSpec.openApiSpec(title = spec.title, version = spec.version) {
             val hasDocStatus = spec.docTypes.any { doctype ->
-                doctype.fields.any { it.fieldName == "docstatus" }
+                doctype.fields.any { it == DocField.DocStatus }
             }
-            if (hasDocStatus)
+            if (hasDocStatus && !spec.docStatusAsInteger)
                 addComponent(DocField.DocStatus.getOpenApiSpecEnum(context))
             spec.docTypes.forEach { docType ->
                 addComponents(docType.toOpenApiComponents(context))
