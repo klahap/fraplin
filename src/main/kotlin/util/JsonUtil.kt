@@ -69,6 +69,16 @@ fun JsonElement.encodeToYamlString(indent: String = "  "): String =
 
 enum class YamlParentNodeType { ROOT, ARRAY, OBJECT }
 
+private fun String.isAmbiguous(): Boolean = when {
+    isEmpty() -> true
+    startsWith("0x") -> true
+    startsWith("0o") -> true
+    toDoubleOrNull() != null -> true
+    toSet().intersect(":#-*&%@?!<>|{}".toSet()).isNotEmpty() -> true
+    lowercase() in setOf("null", "true", "false") -> true
+    else -> false
+}
+
 fun JsonElement.encodeToYamlString(
     level: Int,
     indent: String,
@@ -120,7 +130,7 @@ fun JsonElement.encodeToYamlString(
             YamlParentNodeType.ARRAY -> " "
             YamlParentNodeType.OBJECT -> " "
         }
-        prefix + if (isString && content.toSet().intersect(":#-*&%@?!<>|{}".toSet()).isEmpty())
+        prefix + if (isString && !content.isAmbiguous())
             content
         else
             Json.encodeToString(this)
