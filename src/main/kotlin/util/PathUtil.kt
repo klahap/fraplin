@@ -34,13 +34,11 @@ object PathUtil {
         addFile("Interfaces.kt")
 
         addPackage("util") {
-            addFile("CoroutineUtil.kt")
             addFile("DelegationUtil.kt")
             addFile("DocTypeUtil.kt")
             addFile("HttpUtil.kt")
             addFile("JsonElementUtil.kt")
             addFile("JsonUtil.kt")
-            addFile("StringUtil.kt")
         }
         addPackage("service") {
             addFile("FrappeCloudBaseService.kt")

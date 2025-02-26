@@ -1,13 +1,17 @@
 package default_code.service
 
-import default_code.FraplinError
+import default_code.FraplinException
 import default_code.FraplinResult
 import default_code.util.*
 import io.github.goquati.kotlin.util.Success
 import io.github.goquati.kotlin.util.flatMap
 import io.github.goquati.kotlin.util.getOr
 import io.github.goquati.kotlin.util.map
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.future.await
+import kotlinx.coroutines.future.future
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.*
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -24,7 +28,7 @@ open class FrappeCloudBaseService(
         chain.proceed(chain.request().newBuilder { request ->
             headers(request.headers.newBuilder {
                 add("Authorization", "Token $token")
-                team?.takeIfNotBlank()?.let {
+                team?.takeIf { it.isNotBlank() }?.let {
                     add("X-Press-Team", it)
                 }
             })
@@ -80,14 +84,14 @@ open class FrappeCloudBaseService(
                 .url(frappeCloudUrl("press.api.site.login"))
                 .send {
                     getJson<JsonObject>(key = "message").flatMap { it.getStringField("sid") }
-                }.getOr { return@getValueForKey it.err }
+                }.getOr { return@getValueForKey it.result }
             SiteToken(
                 token = token,
                 expiresIn = now.plusHours(3 * 24 - 1),
             ).let { Success(it) }
         }.getOr {
             siteTokens.remove(siteUrl)
-            return it.err
+            return it.result
         }
         return if (siteToken.isExpired()) {
             siteTokens.remove(siteUrl)
@@ -114,10 +118,20 @@ open class FrappeCloudBaseService(
 
         private fun JsonObject.getStringField(key: String): FraplinResult<String> {
             val field = this[key]
-                ?: return FraplinError.unprocessable("frappe cloud response json has no field '$key'").err
+                ?: return FraplinException.unprocessable("frappe cloud response json has no field '$key'").result
             if (field !is JsonPrimitive || !field.isString)
-                return FraplinError.unprocessable("frappe cloud response json has no field '$key' of type String").err
+                return FraplinException.unprocessable("frappe cloud response json has no field '$key' of type String").result
             return Success(field.content)
+        }
+
+        private suspend fun <K, V> ConcurrentHashMap<K, CompletableFuture<V>>.getValueForKey(
+            key: K,
+            block: suspend (K) -> V,
+        ): V = withContext(Dispatchers.IO) {
+            val scope = this
+            computeIfAbsent(key) {
+                scope.future { block(key) }
+            }.await()
         }
     }
 

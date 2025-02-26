@@ -1,6 +1,6 @@
 package default_code.util
 
-import default_code.FraplinError
+import default_code.FraplinException
 import default_code.FraplinResult
 import default_code.model.FrappeAttachField
 import default_code.model.FrappeDocStatus
@@ -29,19 +29,19 @@ public fun <T> Json.decodeFromJsonElementSafe(
 ): FraplinResult<T> = try {
     Success(decodeFromJsonElement(deserializer = deserializer, element = element))
 } catch (e: Exception) {
-    FraplinError(status = 422, "Unprocessable JSON body, ${e.message}").err
+    FraplinException.unprocessable("Unprocessable JSON body, ${e.message}").result
 }
 
 public inline fun <reified T> Json.decodeFromJsonElementSafe(element: JsonElement): FraplinResult<T> = try {
     Success(decodeFromJsonElement<T>(element))
 } catch (e: Exception) {
-    FraplinError(status = 422, "Unprocessable JSON body, ${e.message}").err
+    FraplinException.unprocessable("Unprocessable JSON body, ${e.message}").result
 }
 
 public inline fun <reified T> Json.decodeFromStringSafe(data: String): FraplinResult<T> = try {
     Success(decodeFromString<T>(data))
 } catch (e: Exception) {
-    FraplinError(status = 422, "Unprocessable JSON body, ${e.message}").err
+    FraplinException.unprocessable("Unprocessable JSON body, ${e.message}").result
 }
 
 open class SafeSerializer<T>(

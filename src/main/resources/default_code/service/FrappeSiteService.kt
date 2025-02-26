@@ -10,14 +10,19 @@ import io.github.goquati.kotlin.util.flatMap
 import io.github.goquati.kotlin.util.toResultList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import kotlinx.serialization.serializer
 import okhttp3.*
 import okhttp3.coroutines.executeAsync
+import kotlin.coroutines.CoroutineContext
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.createType
@@ -159,13 +164,13 @@ open class FrappeSiteService(
         ).flatMapConcat { objects ->
             if (objects.isFailure) return@flatMapConcat flowOf(objects.asFailure)
             val objectPairs = objects.success.map { obj ->
-                val key = obj.getStringField("name").getOr { return@flatMapConcat flowOf(it.err) }
+                val key = obj.getStringField("name").getOr { return@flatMapConcat flowOf(it.result) }
                 FrappeDocTypeObjectName(key) to obj
             }
             val childs = loadChilds(
                 parentDocType = docType,
                 parentNames = objectPairs.map { it.first }.toSet(),
-            ).getOr { return@flatMapConcat flowOf(it.err) }
+            ).getOr { return@flatMapConcat flowOf(it.result) }
             objectPairs.asFlow().map { (parentName, obj) ->
                 val data = obj.toMutableMap()
                 childs[parentName]?.forEach { (fieldName, fieldData) ->
@@ -239,7 +244,7 @@ open class FrappeSiteService(
         return requestBuilder {
             delete()
             url(getDocTypeUrl(docType, name = name))
-        }.send { getFraplinErrorOrNull()?.err ?: Success(Unit) }
+        }.send { getFraplinErrorOrNull()?.result ?: Success(Unit) }
     }
 
     suspend inline fun <reified T> delete(
@@ -287,8 +292,8 @@ open class FrappeSiteService(
             ).flatMapConcat { chunk ->
                 when {
                     chunk.isSuccess -> chunk.success.asFlow().map { child ->
-                        val parent = child.getStringField("parent").getOr { return@map it.err }
-                        val parentField = child.getStringField("parentfield").getOr { return@map it.err }
+                        val parent = child.getStringField("parent").getOr { return@map it.result }
+                        val parentField = child.getStringField("parentfield").getOr { return@map it.result }
                         val childKey = ChildObjectKey(
                             parent = FrappeDocTypeObjectName(parent),
                             parentField = FrappeFieldName(parentField),
@@ -308,7 +313,7 @@ open class FrappeSiteService(
                 .mapValues { it.value.toMap() }
         }
 
-    private suspend fun loadBatches(
+    private fun loadBatches(
         docType: FrappeDocTypeName,
         batchSize: Int,
         options: FrappeRequestOptions,
@@ -330,9 +335,9 @@ open class FrappeSiteService(
                         addQueryParameter("limit", batchSize.toString())
                     })
                 }.send {
-                    getJson<JsonArray>(key = "data").getOr { return@send it.err }.map {
+                    getJson<JsonArray>(key = "data").getOr { return@send it.result }.map {
                         it as? JsonObject
-                            ?: return@send FraplinError.unprocessable("invalid child data array element").err
+                            ?: return@send FraplinException.unprocessable("invalid child data array element").result
                     }.let { Success(it) }
                 }
                 emit(objects)
@@ -385,7 +390,7 @@ open class FrappeSiteService(
             if (this.isSuccessful)
                 Success(Unit)
             else
-                Failure(FraplinError(msg = this.message, status = this.code))
+                FraplinException(msg = this.message, status = this.code).result
         }
     }
     
@@ -490,7 +495,7 @@ open class FrappeSiteService(
     ): FraplinResult<T> {
         val headerBuilder = Headers.Builder().addAll(this@send.headers)
         if (withAuthorization)
-            additionalHeaderBuilder(headerBuilder).getOr { return it.err }
+            additionalHeaderBuilder(headerBuilder).getOr { return it.result }
         val headersToAdd = headerBuilder.build()
         val request = newBuilder { headers(headersToAdd) }
         return baseClient.newCall(request).executeAsync().use { responseHandler(it) }
@@ -501,11 +506,33 @@ open class FrappeSiteService(
     ) = send(withAuthorization = withAuthorization) { Success(Unit) }
 
     companion object {
+        private suspend fun <T, E> Flow<Result<T, E>>.toResultList(): Result<List<T>, E> {
+            val destination: MutableList<T> = ArrayList()
+            var error: E? = null
+            val result = takeWhile {
+                if (it.isFailure) error = it.failure
+                !it.isFailure
+            }.map { it.success }.toCollection(destination)
+            return error?.let { Failure(it) } ?: Success(result)
+        }
+
+        private suspend fun <T, R> Iterable<T>.runParallel(
+            context: CoroutineContext? = null,
+            block: suspend (T) -> R,
+        ): List<R> = coroutineScope {
+            if (context == null)
+                this@runParallel.map { async { block(it) } }.awaitAll()
+            else
+                withContext(context) {
+                    this@runParallel.map { async { block(it) } }.awaitAll()
+                }
+        }
+
         private fun JsonObject.getStringField(key: String): FraplinResult<String> {
             val field = this[key]
-                ?: return FraplinError.unprocessable("frappe response json has no field '$key'").err
+                ?: return FraplinException.unprocessable("frappe response json has no field '$key'").result
             if (field !is JsonPrimitive || !field.isString)
-                return FraplinError.unprocessable("frappe response json has no field '$key' of type String").err
+                return FraplinException.unprocessable("frappe response json has no field '$key' of type String").result
             return Success(field.content)
         }
 
