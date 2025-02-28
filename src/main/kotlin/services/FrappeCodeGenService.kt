@@ -11,7 +11,6 @@ import io.github.klahap.fraplin.models.config.FraplinOutputConfig
 import io.github.klahap.fraplin.models.openapi.OpenApiSpec
 import io.github.klahap.fraplin.util.*
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.io.path.*
 
@@ -37,7 +36,7 @@ class FrappeCodeGenService(
 
         val synchronizer = DirectorySynchronizer(context.outputPath)
 
-        PathUtil.defaultCodeFiles.forEach {
+        DefaultCodeFile.all().forEach {
             synchronizer.sync(
                 relativePath = it.relativePath,
                 content = it.getContent(context.packageName)
