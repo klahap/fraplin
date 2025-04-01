@@ -162,10 +162,12 @@ open class FrappeSiteService(
             batchSize = 50,
             options = FrappeRequestOptions.Builder<T>().apply(block).build(),
         ).flatMapConcat { objects ->
-            if (objects.isFailure) return@flatMapConcat flowOf(objects.asFailure)
-            val objectPairs = objects.success.map { obj ->
-                val key = obj.getStringField("name").getOr { return@flatMapConcat flowOf(it.result) }
-                FrappeDocTypeObjectName(key) to obj
+            val objectPairs = when (objects) {
+                is Failure -> return@flatMapConcat flowOf(objects)
+                is Success -> objects.value.map { obj ->
+                    val key = obj.getStringField("name").getOr { return@flatMapConcat flowOf(it.result) }
+                    FrappeDocTypeObjectName(key) to obj
+                }
             }
             val childs = loadChilds(
                 parentDocType = docType,
@@ -202,9 +204,9 @@ open class FrappeSiteService(
         options = FrappeRequestOptions.Builder<T>().apply(block).build(),
         onlyNames = true,
     ).flatMapConcat { batch ->
-        when {
-            batch.isSuccess -> batch.success.map { it.getStringField("name") }.asFlow()
-            else -> flowOf(batch.asFailure)
+        when(batch) {
+            is Success -> batch.value.map { it.getStringField("name") }.asFlow()
+            is Failure -> flowOf(batch)
         }
     }
 
@@ -290,8 +292,8 @@ open class FrappeSiteService(
                     )
                 )
             ).flatMapConcat { chunk ->
-                when {
-                    chunk.isSuccess -> chunk.success.asFlow().map { child ->
+                when(chunk) {
+                    is Success -> chunk.value.asFlow().map { child ->
                         val parent = child.getStringField("parent").getOr { return@map it.result }
                         val parentField = child.getStringField("parentfield").getOr { return@map it.result }
                         val childKey = ChildObjectKey(
@@ -301,7 +303,7 @@ open class FrappeSiteService(
                         Success(childKey to child)
                     }
 
-                    else -> flowOf(chunk.asFailure)
+                    is Failure -> flowOf(chunk)
                 }
             }.toResultList().map { batch ->
                 batch.groupBy({ it.first }, { it.second })
@@ -393,7 +395,7 @@ open class FrappeSiteService(
                 FraplinException(msg = this.message, status = this.code).result
         }
     }
-    
+
     suspend fun <D : DocType.Single> uploadFile(
         body: RequestBody,
         fileName: String,
@@ -506,13 +508,16 @@ open class FrappeSiteService(
     ) = send(withAuthorization = withAuthorization) { Success(Unit) }
 
     companion object {
-        private suspend fun <T, E> Flow<Result<T, E>>.toResultList(): Result<List<T>, E> {
-            val destination: MutableList<T> = ArrayList()
+
+        private suspend fun <T, E> Flow<Result<T, E>>.toResultList(destination: MutableList<T> = ArrayList()): Result<List<T>, E> =
+            toResultCollection(destination)
+
+        private suspend fun <T, E, C : MutableCollection<in T>> Flow<Result<T, E>>.toResultCollection(destination: C): Result<C, E> {
             var error: E? = null
             val result = takeWhile {
-                if (it.isFailure) error = it.failure
+                if (it is Failure) error = it.failure
                 !it.isFailure
-            }.map { it.success }.toCollection(destination)
+            }.map { (it as Success).value }.toCollection(destination)
             return error?.let { Failure(it) } ?: Success(result)
         }
 
