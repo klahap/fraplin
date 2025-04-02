@@ -515,8 +515,13 @@ open class FrappeSiteService(
         private suspend fun <T, E, C : MutableCollection<in T>> Flow<Result<T, E>>.toResultCollection(destination: C): Result<C, E> {
             var error: E? = null
             val result = takeWhile {
-                if (it is Failure) error = it.failure
-                !it.isFailure
+                when (it) {
+                    is Failure -> {
+                        error = it.failure
+                        false
+                    }
+                    is Success -> true
+                }
             }.map { (it as Success).value }.toCollection(destination)
             return error?.let { Failure(it) } ?: Success(result)
         }
