@@ -6,6 +6,7 @@ import default_code.util.*
 import io.github.goquati.kotlin.util.Success
 import io.github.goquati.kotlin.util.flatMap
 import io.github.goquati.kotlin.util.getOr
+import io.github.goquati.kotlin.util.isSuccess
 import io.github.goquati.kotlin.util.map
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -60,7 +61,7 @@ open class FrappeCloudBaseService(
         }
     }
 
-    suspend fun existsSite(siteUrl: HttpUrl): Boolean = getSite(siteUrl).isSuccess
+    suspend fun existsSite(siteUrl: HttpUrl): Boolean = getSite(siteUrl).isSuccess()
 
     suspend fun getSite(siteUrl: HttpUrl): FraplinResult<JsonObject> = Request.Builder()
         .post(JsonObject(mapOf("name" to JsonPrimitive(siteUrl.host))).toRequestBody())
